@@ -9,7 +9,6 @@ IPXpress is a high-performance image processing service written in Go with suppo
 - ✅ Support for formats: **JPEG, PNG, GIF, WebP**
 - ✅ Compression quality control (1-100)
 - ✅ REST API service
-- ✅ Chainable API for library usage
 
 ## Supported Formats
 
