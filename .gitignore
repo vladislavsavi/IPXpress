@@ -26,11 +26,6 @@ go.work
 *~
 .DS_Store
 
-# Build output
-ipxpress-server
-ipxpress
-cmd/ipxpress-server/ipxpress-server
-cmd/ipxpress/ipxpress
 
 # Debug binaries
 __debug_bin*
