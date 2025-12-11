@@ -1,22 +1,17 @@
 package ipxpress
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"image"
-	"image/gif"
-	"image/jpeg"
-	"image/png"
+	"io"
 	"strings"
 
-	"github.com/chai2010/webp"
-	"github.com/disintegration/imaging"
+	"github.com/davidbyttow/govips/v2/vips"
 )
 
-// Processor is a chainable image processor.
+// Processor is a chainable image processor using libvips backend.
 type Processor struct {
-	img image.Image
+	img *vips.ImageRef
 	err error
 }
 
@@ -31,28 +26,33 @@ func (p *Processor) FromBytes(b []byte) *Processor {
 		return p
 	}
 
-	// Try to decode using standard formats first
-	r := bytes.NewReader(b)
-	img, _, err := image.Decode(r)
-	if err == nil {
-		p.img = img
+	img, err := vips.NewImageFromBuffer(b)
+	if err != nil {
+		p.err = fmt.Errorf("failed to decode image: %w", err)
 		return p
 	}
 
-	// Try WebP
-	r = bytes.NewReader(b)
-	img, err = webp.Decode(r)
-	if err == nil {
-		p.img = img
-		return p
-	}
-
-	// If all fail, return error
-	p.err = fmt.Errorf("unsupported image format")
+	p.img = img
 	return p
 }
 
+// FromReader decodes an image from an io.Reader.
+func (p *Processor) FromReader(r io.Reader) *Processor {
+	if p.err != nil {
+		return p
+	}
+
+	data, err := io.ReadAll(r)
+	if err != nil {
+		p.err = fmt.Errorf("failed to read image data: %w", err)
+		return p
+	}
+
+	return p.FromBytes(data)
+}
+
 // Resize resizes the image to fit within maxWidth x maxHeight while preserving aspect ratio.
+// Uses high-quality Lanczos resampling from libvips.
 func (p *Processor) Resize(maxWidth, maxHeight int) *Processor {
 	if p.err != nil {
 		return p
@@ -66,9 +66,8 @@ func (p *Processor) Resize(maxWidth, maxHeight int) *Processor {
 		return p
 	}
 
-	srcBounds := p.img.Bounds()
-	srcW := srcBounds.Dx()
-	srcH := srcBounds.Dy()
+	srcW := p.img.Width()
+	srcH := p.img.Height()
 
 	var tgtW, tgtH int
 	if maxWidth == 0 {
@@ -97,7 +96,31 @@ func (p *Processor) Resize(maxWidth, maxHeight int) *Processor {
 		tgtH = 1
 	}
 
-	p.img = imaging.Resize(p.img, tgtW, tgtH, imaging.Lanczos)
+	// Create a copy of the image before resizing
+	imgCopy, err := p.img.Copy()
+	if err != nil {
+		p.err = fmt.Errorf("failed to copy image: %w", err)
+		return p
+	}
+
+	// Compute scale factors
+	scaleX := float64(tgtW) / float64(srcW)
+	scaleY := float64(tgtH) / float64(srcH)
+
+	if scaleX == scaleY {
+		err = imgCopy.Resize(scaleX, vips.KernelLanczos3)
+	} else {
+		err = imgCopy.ResizeWithVScale(scaleX, scaleY, vips.KernelLanczos3)
+	}
+	if err != nil {
+		imgCopy.Close()
+		p.err = fmt.Errorf("failed to resize image: %w", err)
+		return p
+	}
+
+	// Close the old image and use the resized one
+	p.img.Close()
+	p.img = imgCopy
 	return p
 }
 
@@ -117,27 +140,53 @@ func (p *Processor) ToBytes(format string, quality int) ([]byte, error) {
 		quality = 85
 	}
 
-	buf := &bytes.Buffer{}
-	var err error
-
 	switch format {
 	case "jpeg", "jpg":
-		err = jpeg.Encode(buf, p.img, &jpeg.Options{Quality: quality})
+		params := vips.NewJpegExportParams()
+		params.Quality = quality
+		buf, _, err := p.img.ExportJpeg(params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode JPEG: %w", err)
+		}
+		return buf, nil
+
 	case "png":
-		err = png.Encode(buf, p.img)
+		params := vips.NewPngExportParams()
+		buf, _, err := p.img.ExportPng(params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode PNG: %w", err)
+		}
+		return buf, nil
+
 	case "gif":
-		err = gif.Encode(buf, p.img, nil)
+		params := vips.NewGifExportParams()
+		buf, _, err := p.img.ExportGIF(params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode GIF: %w", err)
+		}
+		return buf, nil
+
 	case "webp":
-		err = webp.Encode(buf, p.img, &webp.Options{Quality: float32(quality)})
+		params := vips.NewWebpExportParams()
+		params.Quality = quality
+		buf, _, err := p.img.ExportWebp(params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode WebP: %w", err)
+		}
+		return buf, nil
+
 	default:
 		return nil, fmt.Errorf("unsupported format: %s", format)
 	}
+}
 
-	if err != nil {
-		return nil, err
+// Close closes the internal image reference and frees memory.
+// It's recommended to call this method after you're done with the Processor.
+func (p *Processor) Close() {
+	if p.img != nil {
+		p.img.Close()
+		p.img = nil
 	}
-
-	return buf.Bytes(), nil
 }
 
 // Err returns the processor's error (if any).

@@ -6,7 +6,16 @@ import (
 	"image/color"
 	"image/png"
 	"testing"
+
+	"github.com/davidbyttow/govips/v2/vips"
 )
+
+func init() {
+	// Initialize libvips for tests
+	vips.Startup(&vips.Config{
+		ConcurrencyLevel: 1,
+	})
+}
 
 func TestResizePreservesAspect(t *testing.T) {
 	// create a simple 100x50 PNG
@@ -24,6 +33,8 @@ func TestResizePreservesAspect(t *testing.T) {
 	}
 
 	proc := New().FromBytes(buf.Bytes()).Resize(50, 0) // constrain width
+	defer proc.Close()
+
 	if err := proc.Err(); err != nil {
 		t.Fatalf("processor error: %v", err)
 	}
