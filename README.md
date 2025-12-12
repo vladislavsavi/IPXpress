@@ -18,6 +18,7 @@ IPXpress — высокопроизводительный сервис обра�
 | PNG | ✅ | ✅ | ❌ |
 | GIF | ✅ | ✅ | ❌ |
 | WebP | ✅ | ✅ | ✅ |
+| AVIF | ✅ | ✅ | ✅ |
 
 ## Структура проекта
 
@@ -76,10 +77,65 @@ curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1000&h=500&
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1000&h=500&quality=100&format=webp" -o result.webp
 ```
 
-#### В формате PNG
+#### В формате AVIF (современный формат с лучшим сжатием)
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&format=png" -o result.png
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1200&format=avif&quality=80" -o result.avif
+```
+
+#### Применение размытия
+
+```bash
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&blur=5.0" -o blurred.jpg
+```
+
+#### Увеличение резкости
+
+```bash
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&sharpen=1.5_1_2" -o sharp.jpg
+```
+
+#### Поворот на 90 градусов
+
+```bash
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&rotate=90" -o rotated.jpg
+```
+
+#### Отражение (flip/flop)
+
+```bash
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&flip=true" -o flipped.jpg
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&flop=true" -o flopped.jpg
+```
+
+#### Преобразование в ч/б
+
+```bash
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&grayscale=true" -o grayscale.jpg
+```
+
+#### Вырезать область (crop)
+
+```bash
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&extract=100_100_400_400" -o cropped.jpg
+```
+
+#### Комбинирование эффектов
+
+```bash
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=800&grayscale=true&sharpen=1.0&quality=90&format=webp" -o processed.webp
+```
+
+#### С выбором алгоритма ресэмплинга
+
+```bash
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=200&kernel=lanczos3" -o resized.jpg
+```
+
+#### Разрешить увеличение (upscale)
+
+```bash
+curl "http://localhost:8080/ipx/?url=https://example.com/small.jpg&w=2000&enlarge=true" -o enlarged.jpg
 ```
 
 ## Параметры API
@@ -90,7 +146,45 @@ curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&format=png" -
 | `w` | Максимальная ширина в пикселях | int | ❌ |
 | `h` | Максимальная высота в пикселях | int | ❌ |
 | `quality` | Качество сжатия (1-100) | int | ❌ |
-| `format` | Формат вывода (jpeg, png, gif, webp) | string | ❌ |
+| `format` | Формат вывода (jpeg, png, gif, webp, avif) | string | ❌ |
+
+### Параметры изменения размера
+
+| Параметр | Описание | Примеры |
+|----------|---------|---------|
+| `fit` | Режим масштабирования | contain, cover, fill, inside, outside |
+| `position` | Позиционирование при кропе | center, top, bottom, left, right, entropy, attention |
+| `kernel` | Алгоритм ресэмплинга | nearest, cubic, mitchell, lanczos2, lanczos3 |
+| `enlarge` | Разрешить увеличение | true, false |
+
+### Операции обработки
+
+| Параметр | Описание | Формат значения |
+|----------|---------|-----------------|
+| `blur` | Размытие по Гауссу | sigma (float, например 5.0) |
+| `sharpen` | Увеличение резкости | sigma_flat_jagged (например "1.5_1_2") |
+| `rotate` | Поворот изображения | 0, 90, 180, 270 (градусы) |
+| `flip` | Отразить вертикально | true |
+| `flop` | Отразить горизонтально | true |
+| `grayscale` | Преобразовать в ч/б | true |
+
+### Кадрирование и расширение
+
+| Параметр | Описание | Формат значения |
+|----------|---------|-----------------|
+| `extract` | Вырезать область | left_top_width_height (например "10_10_200_200") |
+| `extend` | Добавить границы | top_right_bottom_left (например "10_10_10_10") |
+
+### Цветовые операции
+
+| Параметр | Описание | Формат значения |
+|----------|---------|-----------------|
+| `background` | Цвет фона | hex без # (например "ffffff" или "fff") |
+| `negate` | Инвертировать цвета | true |
+| `normalize` | Нормализация | true |
+| `gamma` | Гамма коррекция | float (например 2.2) |
+| `modulate` | Модуляция HSB | brightness_saturation_hue (например "1.2_0.8_90") |
+| `flatten` | Удалить альфа канал | true |
 
 **Поведение resize:**
 - Если указана только ширина (`w`) — высота масштабируется пропорционально
