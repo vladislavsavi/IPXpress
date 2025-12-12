@@ -11,8 +11,10 @@ import (
 
 // Processor is a chainable image processor using libvips backend.
 type Processor struct {
-	img *vips.ImageRef
-	err error
+	img            *vips.ImageRef
+	err            error
+	originalFormat string
+	originalSize   int
 }
 
 // New creates a new Processor instance.
@@ -33,6 +35,11 @@ func (p *Processor) FromBytes(b []byte) *Processor {
 	}
 
 	p.img = img
+
+	// Detect original format and store size
+	p.originalFormat = detectFormat(b)
+	p.originalSize = len(b)
+
 	return p
 }
 
@@ -144,6 +151,9 @@ func (p *Processor) ToBytes(format string, quality int) ([]byte, error) {
 	case "jpeg", "jpg":
 		params := vips.NewJpegExportParams()
 		params.Quality = quality
+		params.OptimizeCoding = true
+		params.Interlace = true
+		params.StripMetadata = true
 		buf, _, err := p.img.ExportJpeg(params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode JPEG: %w", err)
@@ -169,6 +179,9 @@ func (p *Processor) ToBytes(format string, quality int) ([]byte, error) {
 	case "webp":
 		params := vips.NewWebpExportParams()
 		params.Quality = quality
+		params.Lossless = false
+		params.StripMetadata = true
+		params.ReductionEffort = 4 // 0-6: higher = better compression, slower
 		buf, _, err := p.img.ExportWebp(params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode WebP: %w", err)
@@ -191,3 +204,39 @@ func (p *Processor) Close() {
 
 // Err returns the processor's error (if any).
 func (p *Processor) Err() error { return p.err }
+
+// OriginalFormat returns the detected original format of the image.
+func (p *Processor) OriginalFormat() string { return p.originalFormat }
+
+// OriginalSize returns the size of the original image in bytes.
+func (p *Processor) OriginalSize() int { return p.originalSize }
+
+// detectFormat detects image format from the first bytes of the image data.
+func detectFormat(data []byte) string {
+	if len(data) < 12 {
+		return ""
+	}
+
+	// JPEG: FF D8 FF
+	if data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF {
+		return "jpeg"
+	}
+
+	// PNG: 89 50 4E 47 0D 0A 1A 0A
+	if data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 {
+		return "png"
+	}
+
+	// GIF: "GIF87a" or "GIF89a"
+	if data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 {
+		return "gif"
+	}
+
+	// WebP: "RIFF....WEBP"
+	if len(data) >= 12 && data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 &&
+		data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50 {
+		return "webp"
+	}
+
+	return ""
+}
