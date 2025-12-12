@@ -3,6 +3,10 @@ package ipxpress
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/davidbyttow/govips/v2/vips"
 )
 
 // Handler handles image processing requests.
@@ -112,11 +116,139 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 	// Determine output format
 	outputFormat := params.GetOutputFormat(origFormat)
 
-	// Apply resize only if dimensions are specified
-	if params.Width > 0 || params.Height > 0 {
-		proc = proc.Resize(params.Width, params.Height)
+	// Apply operations in order (order matters for image processing)
+
+	// 1. Extract/Crop (do this first to reduce data to process)
+	if params.Extract != "" {
+		parts := strings.Split(params.Extract, "_")
+		if len(parts) == 4 {
+			left, _ := strconv.Atoi(parts[0])
+			top, _ := strconv.Atoi(parts[1])
+			width, _ := strconv.Atoi(parts[2])
+			height, _ := strconv.Atoi(parts[3])
+			proc = proc.Extract(left, top, width, height)
+		}
 	}
 
+	// 2. Resize
+	if params.Width > 0 || params.Height > 0 {
+		kernel := params.GetVipsKernel()
+		proc = proc.ResizeWithOptions(params.Width, params.Height, kernel, params.Enlarge)
+	}
+
+	// 3. Extend (add borders)
+	if params.Extend != "" {
+		parts := strings.Split(params.Extend, "_")
+		if len(parts) == 4 {
+			top, _ := strconv.Atoi(parts[0])
+			right, _ := strconv.Atoi(parts[1])
+			bottom, _ := strconv.Atoi(parts[2])
+			left, _ := strconv.Atoi(parts[3])
+
+			var bgColor []float64
+			if params.Background != "" {
+				bgColor = hexToRGB(params.Background)
+			}
+			proc = proc.Extend(top, right, bottom, left, bgColor)
+		}
+	}
+
+	// 4. Rotate
+	if params.Rotate != 0 {
+		angle := angleToVips(params.Rotate)
+		proc = proc.Rotate(angle)
+	}
+
+	// 5. Flip/Flop
+	if params.Flip {
+		proc = proc.Flip()
+	}
+	if params.Flop {
+		proc = proc.Flop()
+	}
+
+	// 6. Blur
+	if params.Blur > 0 {
+		proc = proc.Blur(params.Blur)
+	}
+
+	// 7. Sharpen
+	if params.Sharpen != "" {
+		parts := strings.Split(params.Sharpen, "_")
+		sigma, flat, jagged := 1.0, 1.0, 2.0
+		if len(parts) >= 1 {
+			if v, err := strconv.ParseFloat(parts[0], 64); err == nil {
+				sigma = v
+			}
+		}
+		if len(parts) >= 2 {
+			if v, err := strconv.ParseFloat(parts[1], 64); err == nil {
+				flat = v
+			}
+		}
+		if len(parts) >= 3 {
+			if v, err := strconv.ParseFloat(parts[2], 64); err == nil {
+				jagged = v
+			}
+		}
+		proc = proc.Sharpen(sigma, flat, jagged)
+	}
+
+	// 8. Color operations
+	if params.Grayscale {
+		proc = proc.Grayscale()
+	}
+
+	if params.Negate {
+		proc = proc.Negate()
+	}
+
+	if params.Normalize {
+		proc = proc.Normalize()
+	}
+
+	if params.Gamma > 0 {
+		proc = proc.Gamma(params.Gamma)
+	}
+
+	if params.Modulate != "" {
+		parts := strings.Split(params.Modulate, "_")
+		brightness, saturation, hue := 1.0, 1.0, 0.0
+		if len(parts) >= 1 {
+			if v, err := strconv.ParseFloat(parts[0], 64); err == nil {
+				brightness = v
+			}
+		}
+		if len(parts) >= 2 {
+			if v, err := strconv.ParseFloat(parts[1], 64); err == nil {
+				saturation = v
+			}
+		}
+		if len(parts) >= 3 {
+			if v, err := strconv.ParseFloat(parts[2], 64); err == nil {
+				hue = v
+			}
+		}
+		proc = proc.Modulate(brightness, saturation, hue)
+	}
+
+	// 9. Flatten (remove alpha)
+	if params.Flatten {
+		var bgColor *vips.Color
+		if params.Background != "" {
+			rgb := hexToRGB(params.Background)
+			if len(rgb) >= 3 {
+				bgColor = &vips.Color{
+					R: uint8(rgb[0]),
+					G: uint8(rgb[1]),
+					B: uint8(rgb[2]),
+				}
+			}
+		}
+		proc = proc.Flatten(bgColor)
+	}
+
+	// Check for errors
 	if err := proc.Err(); err != nil {
 		proc.Close()
 		return &CacheEntry{
@@ -125,6 +257,7 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 		}
 	}
 
+	// Encode to output format
 	out, err := proc.ToBytes(outputFormat, params.Quality)
 	proc.Close() // Free memory immediately after processing
 	if err != nil {
@@ -166,4 +299,48 @@ func (h *Handler) writeResponse(w http.ResponseWriter, entry *CacheEntry) {
 // CleanupCache removes expired entries from the handler's cache.
 func (h *Handler) CleanupCache() {
 	h.cache.Cleanup()
+}
+
+// hexToRGB converts hex color string to RGB values
+func hexToRGB(hex string) []float64 {
+	hex = strings.TrimPrefix(hex, "#")
+
+	// Handle 3-digit hex
+	if len(hex) == 3 {
+		hex = string(hex[0]) + string(hex[0]) + string(hex[1]) + string(hex[1]) + string(hex[2]) + string(hex[2])
+	}
+
+	if len(hex) != 6 {
+		return []float64{255, 255, 255} // default to white
+	}
+
+	r, err1 := strconv.ParseUint(hex[0:2], 16, 8)
+	g, err2 := strconv.ParseUint(hex[2:4], 16, 8)
+	b, err3 := strconv.ParseUint(hex[4:6], 16, 8)
+
+	if err1 != nil || err2 != nil || err3 != nil {
+		return []float64{255, 255, 255} // default to white
+	}
+
+	return []float64{float64(r), float64(g), float64(b)}
+}
+
+// angleToVips converts rotation angle to vips.Angle
+func angleToVips(angle int) vips.Angle {
+	// Normalize angle to 0-359
+	angle = angle % 360
+	if angle < 0 {
+		angle += 360
+	}
+
+	switch angle {
+	case 90:
+		return vips.Angle90
+	case 180:
+		return vips.Angle180
+	case 270:
+		return vips.Angle270
+	default:
+		return vips.Angle0
+	}
 }
