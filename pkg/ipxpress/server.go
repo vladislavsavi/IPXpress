@@ -73,28 +73,8 @@ func Server() http.Handler {
 		// If no transformation parameters are specified, return original image
 		if wv == 0 && hv == 0 && quality == 0 && formatParam == "" {
 			// Return original without processing
-			proc := New().FromBytes(imageData)
-			format := proc.OriginalFormat()
-			if format == "" {
-				format = "jpeg"
-			}
-
-			var ctype string
-			switch format {
-			case "png":
-				ctype = "image/png"
-			case "webp":
-				ctype = "image/webp"
-			case "gif":
-				ctype = "image/gif"
-			default:
-				ctype = "image/jpeg"
-			}
-
-			w.Header().Set("Content-Type", ctype)
-			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-			w.Header().Set("Pragma", "no-cache")
-			w.Header().Set("Expires", "0")
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Header().Set("Cache-Control", "public, max-age=31536000") // 1 year - original never changes
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(imageData)
 			return
@@ -124,18 +104,10 @@ func Server() http.Handler {
 			format = "jpeg"
 		}
 
-		// Set quality: if not specified, use high quality for optimization without visible loss
+		// Set quality: if not specified, use good quality
 		if quality <= 0 || quality > 100 {
-			if wv == 0 && hv == 0 {
-				// No resize - use high quality to preserve original as much as possible
-				quality = 90
-			} else {
-				// Resize applied - use good quality
-				quality = 85
-			}
+			quality = 85 // Good default
 		}
-
-		// Note: quality is validated to not exceed original size below
 
 		// Apply resize only if dimensions are specified
 		if wv > 0 || hv > 0 {
@@ -144,44 +116,15 @@ func Server() http.Handler {
 
 		if err := proc.Err(); err != nil {
 			http.Error(w, fmt.Sprintf("processing: %v", err), http.StatusInternalServerError)
+			proc.Close()
 			return
 		}
 
-		originalSize := proc.OriginalSize()
 		out, err := proc.ToBytes(format, quality)
+		proc.Close() // Free memory immediately after processing
 		if err != nil {
 			http.Error(w, fmt.Sprintf("encode: %v", err), http.StatusInternalServerError)
 			return
-		}
-
-		// If no resize, try to ensure the output is not larger than the original
-		// by gradually reducing quality for lossy formats (jpeg/webp).
-		if wv == 0 && hv == 0 && (format == "jpeg" || format == "webp") && len(out) > originalSize {
-			tryQuality := quality
-			best := out
-			for tryQuality > 50 {
-				tryQuality -= 5
-				tmp, err := proc.ToBytes(format, tryQuality)
-				if err != nil {
-					break
-				}
-				if len(tmp) <= originalSize {
-					best = tmp
-					break
-				}
-				best = tmp
-			}
-
-			// If still larger than original and format not forced, return original
-			if len(best) > originalSize {
-				if formatParam == "" || format == origFormat {
-					out = imageData
-				} else {
-					out = best
-				}
-			} else {
-				out = best
-			}
 		}
 
 		// content type
@@ -197,11 +140,9 @@ func Server() http.Handler {
 			ctype = "image/jpeg"
 		}
 
-		// caching headers
+		// caching headers - cache processed images for 7 days
 		w.Header().Set("Content-Type", ctype)
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		w.Header().Set("Pragma", "no-cache")
-		w.Header().Set("Expires", "0")
+		w.Header().Set("Cache-Control", "public, max-age=604800") // 7 days
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(out)
 	})

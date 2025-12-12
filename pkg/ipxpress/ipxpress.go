@@ -103,31 +103,21 @@ func (p *Processor) Resize(maxWidth, maxHeight int) *Processor {
 		tgtH = 1
 	}
 
-	// Create a copy of the image before resizing
-	imgCopy, err := p.img.Copy()
-	if err != nil {
-		p.err = fmt.Errorf("failed to copy image: %w", err)
-		return p
-	}
-
 	// Compute scale factors
 	scaleX := float64(tgtW) / float64(srcW)
 	scaleY := float64(tgtH) / float64(srcH)
 
+	// Resize in-place (modifies the image reference)
 	if scaleX == scaleY {
-		err = imgCopy.Resize(scaleX, vips.KernelLanczos3)
+		p.err = p.img.Resize(scaleX, vips.KernelLanczos3)
 	} else {
-		err = imgCopy.ResizeWithVScale(scaleX, scaleY, vips.KernelLanczos3)
-	}
-	if err != nil {
-		imgCopy.Close()
-		p.err = fmt.Errorf("failed to resize image: %w", err)
-		return p
+		p.err = p.img.ResizeWithVScale(scaleX, scaleY, vips.KernelLanczos3)
 	}
 
-	// Close the old image and use the resized one
-	p.img.Close()
-	p.img = imgCopy
+	if p.err != nil {
+		p.err = fmt.Errorf("failed to resize image: %w", p.err)
+	}
+
 	return p
 }
 

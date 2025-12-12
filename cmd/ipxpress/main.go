@@ -13,9 +13,9 @@ import (
 func main() {
 	// Initialize libvips on startup
 	vips.Startup(&vips.Config{
-		ConcurrencyLevel: 1,
-		MaxCacheMem:      50,  // 50MB cache
-		MaxCacheSize:     100, // 100 images in cache
+		ConcurrencyLevel: 0,   // 0 = use all available CPU cores
+		MaxCacheMem:      100, // 100MB cache for better performance
+		MaxCacheSize:     200, // 200 images in cache
 		MaxCacheFiles:    0,   // No file cache
 	})
 
