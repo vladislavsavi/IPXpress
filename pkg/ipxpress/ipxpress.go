@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/davidbyttow/govips/v2/vips"
 )
@@ -13,7 +12,7 @@ import (
 type Processor struct {
 	img            *vips.ImageRef
 	err            error
-	originalFormat string
+	originalFormat Format
 	originalSize   int
 }
 
@@ -37,7 +36,7 @@ func (p *Processor) FromBytes(b []byte) *Processor {
 	p.img = img
 
 	// Detect original format and store size
-	p.originalFormat = detectFormat(b)
+	p.originalFormat = DetectFormat(b)
 	p.originalSize = len(b)
 
 	return p
@@ -122,8 +121,8 @@ func (p *Processor) Resize(maxWidth, maxHeight int) *Processor {
 }
 
 // ToBytes encodes the image to bytes in the given format.
-// Supports: jpeg, jpg, png, gif, webp
-func (p *Processor) ToBytes(format string, quality int) ([]byte, error) {
+// Supports: jpeg, png, gif, webp
+func (p *Processor) ToBytes(format Format, quality int) ([]byte, error) {
 	if p.err != nil {
 		return nil, p.err
 	}
@@ -131,14 +130,12 @@ func (p *Processor) ToBytes(format string, quality int) ([]byte, error) {
 		return nil, errors.New("no image to encode")
 	}
 
-	format = strings.ToLower(format)
-
 	if quality <= 0 || quality > 100 {
 		quality = 85
 	}
 
 	switch format {
-	case "jpeg", "jpg":
+	case FormatJPEG:
 		params := vips.NewJpegExportParams()
 		params.Quality = quality
 		params.OptimizeCoding = true
@@ -150,7 +147,7 @@ func (p *Processor) ToBytes(format string, quality int) ([]byte, error) {
 		}
 		return buf, nil
 
-	case "png":
+	case FormatPNG:
 		params := vips.NewPngExportParams()
 		buf, _, err := p.img.ExportPng(params)
 		if err != nil {
@@ -158,7 +155,7 @@ func (p *Processor) ToBytes(format string, quality int) ([]byte, error) {
 		}
 		return buf, nil
 
-	case "gif":
+	case FormatGIF:
 		params := vips.NewGifExportParams()
 		buf, _, err := p.img.ExportGIF(params)
 		if err != nil {
@@ -166,7 +163,7 @@ func (p *Processor) ToBytes(format string, quality int) ([]byte, error) {
 		}
 		return buf, nil
 
-	case "webp":
+	case FormatWebP:
 		params := vips.NewWebpExportParams()
 		params.Quality = quality
 		params.Lossless = false
@@ -196,37 +193,7 @@ func (p *Processor) Close() {
 func (p *Processor) Err() error { return p.err }
 
 // OriginalFormat returns the detected original format of the image.
-func (p *Processor) OriginalFormat() string { return p.originalFormat }
+func (p *Processor) OriginalFormat() Format { return p.originalFormat }
 
 // OriginalSize returns the size of the original image in bytes.
 func (p *Processor) OriginalSize() int { return p.originalSize }
-
-// detectFormat detects image format from the first bytes of the image data.
-func detectFormat(data []byte) string {
-	if len(data) < 12 {
-		return ""
-	}
-
-	// JPEG: FF D8 FF
-	if data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF {
-		return "jpeg"
-	}
-
-	// PNG: 89 50 4E 47 0D 0A 1A 0A
-	if data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 {
-		return "png"
-	}
-
-	// GIF: "GIF87a" or "GIF89a"
-	if data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 {
-		return "gif"
-	}
-
-	// WebP: "RIFF....WEBP"
-	if len(data) >= 12 && data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 &&
-		data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50 {
-		return "webp"
-	}
-
-	return ""
-}

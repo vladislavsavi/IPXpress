@@ -26,21 +26,25 @@ func main() {
 	// Ensure cleanup happens on shutdown
 	defer vips.Shutdown()
 
-	// Start cache cleanup goroutine (less frequently to reduce contention)
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			ipxpress.CleanupCache()
-		}
-	}()
-
 	addr := flag.String("addr", ":8080", "address to listen on")
 	flag.Parse()
 
+	// Create handler with default config
+	config := ipxpress.DefaultConfig()
+	handler := ipxpress.NewHandler(config)
+
+	// Start cache cleanup goroutine
+	go func() {
+		ticker := time.NewTicker(config.CleanupInterval)
+		defer ticker.Stop()
+		for range ticker.C {
+			handler.CleanupCache()
+		}
+	}()
+
 	mux := http.NewServeMux()
 	// Mount at /ipx/ to handle image processing requests
-	mux.Handle("/ipx/", http.StripPrefix("/ipx/", ipxpress.Server()))
+	mux.Handle("/ipx/", http.StripPrefix("/ipx/", handler))
 
 	// Health check endpoint
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
