@@ -290,14 +290,14 @@ func CleanupCache() {
 	responseCache.RLock()
 	now := time.Now()
 	keysToDelete := []string{}
-	
+
 	for key, entry := range responseCache.entries {
 		if now.Sub(entry.timestamp) > cacheTTL {
 			keysToDelete = append(keysToDelete, key)
 		}
 	}
 	responseCache.RUnlock()
-	
+
 	// Only lock for writing if there are keys to delete
 	if len(keysToDelete) > 0 {
 		responseCache.Lock()
