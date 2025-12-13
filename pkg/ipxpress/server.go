@@ -9,12 +9,21 @@ import (
 	"github.com/davidbyttow/govips/v2/vips"
 )
 
+// ProcessorFunc is a function that processes an image.
+// It receives the processor and params, and can apply custom transformations.
+type ProcessorFunc func(*Processor, *ProcessingParams) *Processor
+
+// MiddlewareFunc is a function that wraps the handler with additional functionality.
+type MiddlewareFunc func(http.Handler) http.Handler
+
 // Handler handles image processing requests.
 type Handler struct {
 	cache           Cache
 	fetcher         *Fetcher
 	config          *Config
 	processingLimit chan struct{}
+	processors      []ProcessorFunc
+	middlewares     []MiddlewareFunc
 }
 
 // NewHandler creates a new Handler with the given configuration.
@@ -28,7 +37,31 @@ func NewHandler(config *Config) *Handler {
 		fetcher:         NewFetcher(),
 		config:          config,
 		processingLimit: make(chan struct{}, config.ProcessingLimit),
+		processors:      []ProcessorFunc{},
+		middlewares:     []MiddlewareFunc{},
 	}
+}
+
+// UseProcessor adds a custom processor function to the processing pipeline.
+// Processors are executed after the built-in transformations.
+func (h *Handler) UseProcessor(processor ProcessorFunc) *Handler {
+	h.processors = append(h.processors, processor)
+	return h
+}
+
+// UseMiddleware adds a middleware to wrap the handler.
+func (h *Handler) UseMiddleware(middleware MiddlewareFunc) *Handler {
+	h.middlewares = append(h.middlewares, middleware)
+	return h
+}
+
+// applyMiddlewares wraps the handler with all registered middlewares.
+func (h *Handler) applyMiddlewares(handler http.Handler) http.Handler {
+	// Apply middlewares in reverse order so they execute in the order they were added
+	for i := len(h.middlewares) - 1; i >= 0; i-- {
+		handler = h.middlewares[i](handler)
+	}
+	return handler
 }
 
 // ServeHTTP handles HTTP requests for image processing.
@@ -116,7 +149,42 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 	// Determine output format
 	outputFormat := params.GetOutputFormat(origFormat)
 
-	// Apply operations in order (order matters for image processing)
+	// Apply built-in operations in order (order matters for image processing)
+	proc = h.applyBuiltInTransformations(proc, params)
+
+	// Apply custom processors
+	for _, processor := range h.processors {
+		proc = processor(proc, params)
+	}
+
+	// Check for errors
+	if err := proc.Err(); err != nil {
+		proc.Close()
+		return &CacheEntry{
+			StatusCode: http.StatusInternalServerError,
+			ErrorMsg:   fmt.Sprintf("processing: %v", err),
+		}
+	}
+
+	// Encode to output format
+	out, err := proc.ToBytes(outputFormat, params.Quality)
+	proc.Close() // Free memory immediately after processing
+	if err != nil {
+		return &CacheEntry{
+			StatusCode: http.StatusInternalServerError,
+			ErrorMsg:   fmt.Sprintf("encode: %v", err),
+		}
+	}
+
+	return &CacheEntry{
+		ContentType: outputFormat.ContentType(),
+		Data:        out,
+		StatusCode:  http.StatusOK,
+	}
+}
+
+// applyBuiltInTransformations applies the standard image transformations.
+func (h *Handler) applyBuiltInTransformations(proc *Processor, params *ProcessingParams) *Processor {
 
 	// 1. Extract/Crop (do this first to reduce data to process)
 	if params.Extract != "" {
@@ -248,30 +316,7 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 		proc = proc.Flatten(bgColor)
 	}
 
-	// Check for errors
-	if err := proc.Err(); err != nil {
-		proc.Close()
-		return &CacheEntry{
-			StatusCode: http.StatusInternalServerError,
-			ErrorMsg:   fmt.Sprintf("processing: %v", err),
-		}
-	}
-
-	// Encode to output format
-	out, err := proc.ToBytes(outputFormat, params.Quality)
-	proc.Close() // Free memory immediately after processing
-	if err != nil {
-		return &CacheEntry{
-			StatusCode: http.StatusInternalServerError,
-			ErrorMsg:   fmt.Sprintf("encode: %v", err),
-		}
-	}
-
-	return &CacheEntry{
-		ContentType: outputFormat.ContentType(),
-		Data:        out,
-		StatusCode:  http.StatusOK,
-	}
+	return proc
 }
 
 // writeResponse writes a cache entry to the HTTP response writer.

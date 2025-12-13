@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/davidbyttow/govips/v2/vips"
 	"github.com/vladislavsavi/ipxpress/pkg/ipxpress"
@@ -29,18 +28,16 @@ func main() {
 	addr := flag.String("addr", ":8080", "address to listen on")
 	flag.Parse()
 
-	// Create handler with default config
+	// Create handler with default config and add custom processors
 	config := ipxpress.DefaultConfig()
 	handler := ipxpress.NewHandler(config)
 
-	// Start cache cleanup goroutine
-	go func() {
-		ticker := time.NewTicker(config.CleanupInterval)
-		defer ticker.Stop()
-		for range ticker.C {
-			handler.CleanupCache()
-		}
-	}()
+	// Add custom processors (optional - examples)
+	handler.UseProcessor(ipxpress.AutoOrientProcessor())
+	handler.UseProcessor(ipxpress.StripMetadataProcessor())
+
+	// Add middlewares (optional - examples)
+	handler.UseMiddleware(ipxpress.CORSMiddleware([]string{"*"}))
 
 	mux := http.NewServeMux()
 	// Mount at /ipx/ to handle image processing requests
