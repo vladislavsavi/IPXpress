@@ -1,4 +1,4 @@
-module github.com/deadpixel/ipxpress
+module github.com/vladislavsavi/IPXpress
 
 go 1.24.0
 
