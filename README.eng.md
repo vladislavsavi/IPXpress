@@ -127,9 +127,7 @@ go test ./pkg/ipxpress
 
 ## Dependencies
 
-- `github.com/chai2010/webp` — WebP encoding/decoding
-- `github.com/disintegration/imaging` — High-quality scaling (Lanczos)
-- `golang.org/x/image` — JPEG, PNG, GIF support
+- `github.com/davidbyttow/govips/v2` — Go bindings for libvips (image processing with native support for JPEG, PNG, GIF, WebP, AVIF)
 
 ## License
 
