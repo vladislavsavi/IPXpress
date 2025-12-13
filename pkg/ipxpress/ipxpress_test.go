@@ -6,16 +6,9 @@ import (
 	"image/color"
 	"image/png"
 	"testing"
-
-	"github.com/davidbyttow/govips/v2/vips"
 )
 
-func init() {
-	// Initialize libvips for tests
-	vips.Startup(&vips.Config{
-		ConcurrencyLevel: 1,
-	})
-}
+// No need to manually initialize vips - it's done automatically
 
 func TestResizePreservesAspect(t *testing.T) {
 	// create a simple 100x50 PNG

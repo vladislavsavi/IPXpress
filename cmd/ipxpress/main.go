@@ -11,25 +11,19 @@ import (
 )
 
 func main() {
-	// Initialize libvips for high-concurrency server workloads
-	vips.Startup(&vips.Config{
+	addr := flag.String("addr", ":8080", "address to listen on")
+	flag.Parse()
+
+	// Create handler with custom config including vips settings
+	config := ipxpress.DefaultConfig()
+	config.VipsConfig = &ipxpress.VipsConfig{
 		ConcurrencyLevel: 0,    // Use all available CPU cores
 		MaxCacheMem:      2048, // 2GB cache - more space for concurrent images
 		MaxCacheSize:     5000, // 5000 images in cache - handle more concurrent requests
 		MaxCacheFiles:    0,    // No file cache (memory only is faster)
-	})
+		LogLevel:         vips.LogLevelWarning,
+	}
 
-	// Suppress VIPS info logs, only show warnings and errors
-	vips.LoggingSettings(nil, vips.LogLevelWarning)
-
-	// Ensure cleanup happens on shutdown
-	defer vips.Shutdown()
-
-	addr := flag.String("addr", ":8080", "address to listen on")
-	flag.Parse()
-
-	// Create handler with default config and add custom processors
-	config := ipxpress.DefaultConfig()
 	handler := ipxpress.NewHandler(config)
 
 	// Add custom processors (optional - examples)

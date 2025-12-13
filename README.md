@@ -228,6 +228,7 @@ func main() {
 
 ## Тесты
 
+
 ```bash
 go test ./pkg/ipxpress
 ```
@@ -236,6 +237,11 @@ go test ./pkg/ipxpress
 
 - `github.com/davidbyttow/govips/v2` — Go binding для libvips (обработка изображений с нативной поддержкой JPEG, PNG, GIF, WebP, AVIF)
 
+**Примечание:** Требуется установленная библиотека libvips. См. [инструкции по установке](https://github.com/davidbyttow/govips#prerequisites).
+
+Библиотека автоматически инициализирует libvips при первом использовании, поэтому вам не нужно вручную вызывать `vips.Startup()` или `vips.Shutdown()`.
+
 ## Лицензия
 
 MIT
+

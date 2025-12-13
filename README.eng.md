@@ -129,6 +129,11 @@ go test ./pkg/ipxpress
 
 - `github.com/davidbyttow/govips/v2` — Go bindings for libvips (image processing with native support for JPEG, PNG, GIF, WebP, AVIF)
 
+**Note:** libvips must be installed on your system. See [installation instructions](https://github.com/davidbyttow/govips#prerequisites).
+
+The library automatically initializes libvips on first use, so you don't need to manually call `vips.Startup()` or `vips.Shutdown()`.
+
 ## License
 
 MIT
+

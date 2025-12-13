@@ -27,9 +27,18 @@ type Handler struct {
 }
 
 // NewHandler creates a new Handler with the given configuration.
+// Automatically initializes vips if not already initialized.
+// If config.VipsConfig is provided, vips will be initialized with those settings.
 func NewHandler(config *Config) *Handler {
 	if config == nil {
 		config = DefaultConfig()
+	}
+
+	// Initialize vips with custom config if provided
+	if config.VipsConfig != nil {
+		initVipsWithSettings(config.VipsConfig)
+	} else {
+		initVips()
 	}
 
 	return &Handler{

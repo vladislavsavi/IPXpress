@@ -8,6 +8,10 @@ IPXpress is a minimalist, extensible image processing library built on libvips. 
 go get github.com/vladislavsavi/ipxpress/pkg/ipxpress
 ```
 
+**Note:** You need to have libvips installed on your system. See [installation instructions](https://github.com/davidbyttow/govips#prerequisites).
+
+The library automatically initializes libvips when you create a handler or processor, so you don't need to manually call `vips.Startup()` or `vips.Shutdown()`.
+
 ## Basic Usage
 
 ### Simple Handler
@@ -25,6 +29,7 @@ import (
 
 func main() {
     // Create a simple handler with default settings
+    // vips is automatically initialized
     handler := ipxpress.NewHandler(nil)
     
     // Mount it
@@ -41,6 +46,25 @@ config := &ipxpress.Config{
     ProcessingLimit: 10,              // Max 10 concurrent image processing operations
     CacheTTL:        5 * time.Minute, // Cache images for 5 minutes
     CleanupInterval: 1 * time.Minute, // Clean cache every minute
+}
+
+handler := ipxpress.NewHandler(config)
+```
+
+### Custom Vips Configuration
+
+You can customize libvips settings through Config:
+
+```go
+config := &ipxpress.Config{
+    ProcessingLimit: 10,
+    CacheTTL:        5 * time.Minute,
+    VipsConfig: &ipxpress.VipsConfig{
+        ConcurrencyLevel: 0,    // Use all CPU cores (0 = auto)
+        MaxCacheMem:      4096, // 4GB cache
+        MaxCacheSize:     10000,
+        LogLevel:         vips.LogLevelError, // Only show errors
+    },
 }
 
 handler := ipxpress.NewHandler(config)
@@ -188,6 +212,7 @@ You can also use IPXpress for direct image processing:
 import "github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 
 func processImage(inputData []byte) ([]byte, error) {
+    // vips is automatically initialized
     proc := ipxpress.New().
         FromBytes(inputData).
         Resize(800, 600).
@@ -244,19 +269,17 @@ import (
 )
 
 func main() {
-    // Initialize vips
-    vips.Startup(&vips.Config{
-        ConcurrencyLevel: 0,
-        MaxCacheMem:      2048,
-        MaxCacheSize:     5000,
-    })
-    defer vips.Shutdown()
-    
-    // Configure IPXpress
+    // Configure IPXpress with custom vips settings
     config := &ipxpress.Config{
         ProcessingLimit: 10,
         CacheTTL:        30 * time.Minute,
         CleanupInterval: 5 * time.Minute,
+        VipsConfig: &ipxpress.VipsConfig{
+            ConcurrencyLevel: 0,
+            MaxCacheMem:      4096,
+            MaxCacheSize:     10000,
+            LogLevel:         vips.LogLevelWarning,
+        },
     }
     
     handler := ipxpress.NewHandler(config)

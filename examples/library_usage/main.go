@@ -5,20 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/davidbyttow/govips/v2/vips"
 	"github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 )
 
 func main() {
-	// Initialize vips
-	vips.Startup(&vips.Config{
-		ConcurrencyLevel: 0,
-		MaxCacheMem:      2048,
-		MaxCacheSize:     5000,
-	})
-	vips.LoggingSettings(nil, vips.LogLevelWarning)
-	defer vips.Shutdown()
-
 	// Configure IPXpress
 	config := &ipxpress.Config{
 		ProcessingLimit: 10,

@@ -183,12 +183,8 @@ r.PathPrefix("/img/").Handler(http.StripPrefix("/img/", imgHandler))
 ### Production setup
 
 ```go
-vips.Startup(&vips.Config{
-    ConcurrencyLevel: 0,
-    MaxCacheMem:      2048,
-    MaxCacheSize:     5000,
-})
-defer vips.Shutdown()
+// Библиотека автоматически инициализирует vips
+// Вам не нужно вызывать vips.Startup() или vips.Shutdown()
 
 config := &ipxpress.Config{
     ProcessingLimit: 10,
@@ -206,6 +202,8 @@ handler.UseMiddleware(ipxpress.CORSMiddleware([]string{"*"}))
 - Go 1.21+
 - libvips 8.12+
 
+**Примечание:** Библиотека автоматически инициализирует libvips при первом использовании. Вам не нужно вручную вызывать `vips.Startup()` или `vips.Shutdown()`.
+
 ## Установка libvips
 
 ### Ubuntu/Debian
@@ -221,3 +219,4 @@ brew install vips
 ## Лицензия
 
 MIT License - см. [LICENSE](LICENSE)
+

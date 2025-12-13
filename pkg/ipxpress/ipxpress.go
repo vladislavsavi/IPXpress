@@ -4,9 +4,48 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/davidbyttow/govips/v2/vips"
 )
+
+var (
+	vipsInitOnce sync.Once
+	vipsInitErr  error
+)
+
+// initVips initializes vips library with default settings.
+// This is called automatically when using the library, so users don't need to manually initialize vips.
+func initVips() {
+	initVipsWithSettings(nil)
+}
+
+// initVipsWithSettings initializes vips with custom or default settings.
+func initVipsWithSettings(cfg *VipsConfig) {
+	vipsInitOnce.Do(func() {
+		if cfg == nil {
+			cfg = DefaultVipsConfig()
+		}
+
+		vips.Startup(&vips.Config{
+			ConcurrencyLevel: cfg.ConcurrencyLevel,
+			MaxCacheMem:      cfg.MaxCacheMem,
+			MaxCacheSize:     cfg.MaxCacheSize,
+			MaxCacheFiles:    cfg.MaxCacheFiles,
+		})
+		vips.LoggingSettings(nil, cfg.LogLevel)
+	})
+}
+
+// InitVipsWithConfig allows manual initialization of vips with custom configuration.
+// This should be called before creating any handlers or processors if you want custom settings.
+// If not called, default settings will be used automatically.
+func InitVipsWithConfig(config *vips.Config, logLevel vips.LogLevel) {
+	vipsInitOnce.Do(func() {
+		vips.Startup(config)
+		vips.LoggingSettings(nil, logLevel)
+	})
+}
 
 // Processor is a chainable image processor using libvips backend.
 type Processor struct {
@@ -17,7 +56,9 @@ type Processor struct {
 }
 
 // New creates a new Processor instance.
+// Automatically initializes vips if not already initialized.
 func New() *Processor {
+	initVips()
 	return &Processor{}
 }
 
