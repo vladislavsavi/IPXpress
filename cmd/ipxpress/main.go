@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/davidbyttow/govips/v2/vips"
-	"github.com/deadpixel/ipxpress/pkg/ipxpress"
+	"github.com/vladislavsavi/IPXpress/pkg/ipxpress"
 )
 
 func main() {
