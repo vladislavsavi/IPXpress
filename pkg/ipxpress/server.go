@@ -149,7 +149,7 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 	// If no transformation parameters are specified, return original image
 	if !params.NeedsProcessing(origFormat) {
 		return &CacheEntry{
-			ContentType: "application/octet-stream",
+			ContentType: origFormat.ContentType(),
 			Data:        imageData,
 			StatusCode:  http.StatusOK,
 		}
@@ -337,13 +337,24 @@ func (h *Handler) writeResponse(w http.ResponseWriter, entry *CacheEntry) {
 	}
 
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(entry.Data)))
-	if entry.ContentType != "" {
-		w.Header().Set("Content-Type", entry.ContentType)
-		if entry.ContentType == "application/octet-stream" {
-			w.Header().Set("Cache-Control", "public, max-age=31536000")
-		} else {
-			w.Header().Set("Cache-Control", "public, max-age=604800")
+	ct := entry.ContentType
+	if ct == "" || ct == "application/octet-stream" {
+		// Try to detect format from bytes to set a proper image content type
+		detected := DetectFormat(entry.Data)
+		if detected != "" {
+			ct = detected.ContentType()
 		}
+		if ct == "" {
+			ct = "application/octet-stream"
+		}
+	}
+	w.Header().Set("Content-Type", ct)
+	// Prefer inline display universally to avoid forced downloads
+	w.Header().Set("Content-Disposition", "inline")
+	if ct == "application/octet-stream" {
+		w.Header().Set("Cache-Control", "public, max-age=31536000")
+	} else {
+		w.Header().Set("Cache-Control", "public, max-age=604800")
 	}
 
 	w.WriteHeader(entry.StatusCode)

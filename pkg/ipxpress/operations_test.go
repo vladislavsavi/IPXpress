@@ -207,6 +207,38 @@ func TestResizeWithOptions(t *testing.T) {
 	}
 }
 
+// TestNoUpscaleEnsured verifies that output dimensions never exceed original when enlarge=false
+func TestNoUpscaleEnsured(t *testing.T) {
+	// Original image is 100x100
+	img := createTestImage(100, 100)
+
+	// Request a larger size but with enlarge=false
+	proc := New().FromBytes(img)
+	proc.ResizeWithOptions(300, 300, vips.KernelLanczos3, false)
+
+	if err := proc.Err(); err != nil {
+		t.Fatalf("processing error: %v", err)
+	}
+
+	// Encode to PNG and check dimensions
+	out, err := proc.ToBytes(FormatPNG, 0)
+	proc.Close()
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+
+	decoded, format, err := image.Decode(bytes.NewReader(out))
+	if err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	_ = format
+
+	b := decoded.Bounds()
+	if b.Dx() > 100 || b.Dy() > 100 {
+		t.Fatalf("upscale detected: got %dx%d, original 100x100", b.Dx(), b.Dy())
+	}
+}
+
 // TestAVIFFormat tests AVIF encoding
 func TestAVIFFormat(t *testing.T) {
 	img := createTestImage(100, 100)

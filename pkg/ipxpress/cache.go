@@ -60,7 +60,8 @@ func (c *InMemoryCache) Get(key string) (*CacheEntry, bool) {
 func (c *InMemoryCache) Set(key string, entry *CacheEntry) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
+	// Stamp the entry time so TTL can be enforced correctly
+	entry.Timestamp = time.Now()
 	c.entries[key] = entry
 }
 

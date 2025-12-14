@@ -18,13 +18,53 @@ http://localhost:8080/ipx/
 
 #### Параметры запроса
 
-| Параметр | Тип | Обязательный | По умолчанию | Описание |
-|----------|-----|--------------|--------------|----------|
-| `url` | string | **Да** | - | URL изображения для обработки (HTTP/HTTPS) |
-| `w` | integer | Нет | - | Максимальная ширина в пикселях |
-| `h` | integer | Нет | - | Максимальная высота в пикселях |
-| `quality` | integer | Нет | 85 | Качество сжатия для JPEG/WebP (1-100) |
-| `format` | string | Нет | original | Формат вывода: `jpeg`, `png`, `gif`, `webp` |
+**Основные параметры:**
+
+| Параметр | Короткий | Тип | Обязательный | По умолчанию | Описание |
+|----------|----------|-----|--------------|--------------|----------|
+| `url` | - | string | **Да** | - | URL изображения для обработки (HTTP/HTTPS) |
+| `width` | `w` | integer | Нет | - | Максимальная ширина в пикселях |
+| `height` | `h` | integer | Нет | - | Максимальная высота в пикселях |
+| `resize` | `s` | string | Нет | - | Размер в формате `WIDTHxHEIGHT` (например, `800x600`) |
+| `quality` | `q` | integer | Нет | 85 | Качество сжатия для JPEG/WebP/AVIF (1-100) |
+| `format` | `f` | string | Нет | original | Формат вывода: `jpeg`, `png`, `gif`, `webp`, `avif` |
+
+**Параметры изменения размера:**
+
+| Параметр | Короткий | Тип | По умолчанию | Описание |
+|----------|----------|-----|--------------|----------|
+| `fit` | - | string | - | Режим масштабирования: `contain`, `cover`, `fill`, `inside`, `outside` |
+| `position` | `pos` | string | - | Позиция для обрезки: `top`, `bottom`, `left`, `right`, `centre`, `entropy`, `attention` |
+| `kernel` | - | string | `lanczos3` | Алгоритм масштабирования: `nearest`, `cubic`, `mitchell`, `lanczos2`, `lanczos3` |
+| `enlarge` | - | boolean | `false` | Разрешить увеличение изображения выше исходного размера |
+
+**Операции кадрирования и расширения:**
+
+| Параметр | Описание | Пример |
+|----------|----------|--------|
+| `extract` | Извлечь регион: `left_top_width_height` | `extract=10_10_200_200` |
+| `trim` | Обрезать края по порогу | `trim=10` |
+| `extend` | Добавить рамку: `top_right_bottom_left` | `extend=10_10_10_10` |
+| `background` | `b` | Цвет фона (hex) | `background=ff0000` или `b=ff0000` |
+
+**Эффекты и фильтры:**
+
+| Параметр | Описание | Пример |
+|----------|----------|--------|
+| `blur` | Размытие (sigma) | `blur=5` |
+| `sharpen` | Резкость: `sigma_flat_jagged` | `sharpen=1.5_1_2` |
+| `rotate` | Поворот в градусах (90/180/270) | `rotate=90` |
+| `flip` | Отразить вертикально | `flip=true` |
+| `flop` | Отразить горизонтально | `flop=true` |
+| `grayscale` | Перевести в градации серого | `grayscale=true` |
+| `negate` | Инвертировать цвета | `negate=true` |
+| `normalize` | Нормализовать | `normalize=true` |
+| `gamma` | Гамма-коррекция | `gamma=2.2` |
+| `median` | Медианный фильтр | `median=3` |
+| `threshold` | Порог бинаризации | `threshold=128` |
+| `tint` | Оттенок (hex) | `tint=00ff00` |
+| `modulate` | Модуляция: `brightness_saturation_hue` | `modulate=1.2_0.8_90` |
+| `flatten` | Удалить прозрачность | `flatten=true` |
 
 #### Заголовки ответа
 
@@ -47,22 +87,28 @@ http://localhost:8080/ipx/
 Изменить размер изображения с сохранением пропорций:
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=800" \
-  -o resized.jpg
+# Используя короткий параметр
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=800" -o resized.jpg
+
+# Используя длинный параметр
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&width=800" -o resized.jpg
 ```
 
 **Поведение:**
 - Ширина будет 800px
 - Высота вычисляется автоматически для сохранения пропорций
-- Формат остается JPEG
+- Формат остается оригинальным
 
 ### 2. Изменение размера с обеими размерностями
 
 Вписать изображение в прямоугольник 1000x600:
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=1000&h=600" \
-  -o fitted.jpg
+# Короткая форма
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=1000&h=600" -o fitted.jpg
+
+# Или используя параметр s (resize)
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&s=1000x600" -o fitted.jpg
 ```
 
 **Поведение:**
@@ -75,15 +121,17 @@ curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=1000&h=600"
 Конвертировать JPEG в WebP:
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&format=webp" \
-  -o photo.webp
+# Короткая форма (f)
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&f=webp" -o photo.webp
+
+# Длинная форма (format)
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&format=webp" -o photo.webp
 ```
 
 ### 4. Конвертация в PNG без сжатия
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&format=png" \
-  -o photo.png
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&f=png" -o photo.png
 ```
 
 **Примечание:** PNG не поддерживает параметр `quality`, он игнорируется.
@@ -91,8 +139,11 @@ curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&format=png" \
 ### 5. Изменение размера с контролем качества
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=1200&quality=95" \
-  -o high-quality.jpg
+# Короткая форма
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=1200&q=95" -o high-quality.jpg
+
+# Длинная форма
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&width=1200&quality=95" -o high-quality.jpg
 ```
 
 **Рекомендации по качеству:**
@@ -103,24 +154,41 @@ curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=1200&qualit
 ### 6. Оптимизация для веба (WebP + качество)
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/large.jpg&w=1200&format=webp&quality=80" \
-  -o optimized.webp
+curl "http://localhost:8080/ipx/?url=https://example.com/large.jpg&w=1200&f=webp&q=80" -o optimized.webp
 ```
 
 ### 7. Создание превью
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=200&h=200&quality=75" \
-  -o thumbnail.jpg
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&s=200x200&q=75" -o thumbnail.jpg
 ```
 
-### 8. Получение оригинального изображения
+### 8. Размытие и другие эффекты
+
+```bash
+# Размытие
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&blur=5" -o blurred.jpg
+
+# Черно-белое
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&grayscale=true" -o bw.jpg
+
+# Поворот на 90 градусов
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&rotate=90" -o rotated.jpg
+```
+
+### 9. Комбинирование параметров
+
+```bash
+# Resize + format + quality + эффект
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&s=800x600&f=webp&q=85&sharpen=1.5_1_2" -o processed.webp
+```
+
+### 10. Получение оригинального изображения
 
 Если не указаны параметры трансформации, возвращается оригинал:
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg" \
-  -o original.jpg
+curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg" -o original.jpg
 ```
 
 ## Поведение resize
@@ -143,10 +211,12 @@ curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg" \
 
 Ширина масштабируется пропорционально.
 
-### Ширина и высота (w + h)
+### Ширина и высота (w + h или s)
 
 ```bash
 ?url=https://example.com/1000x500.jpg&w=600&h=400
+# или
+?url=https://example.com/1000x500.jpg&s=600x400
 # Результат: 600x300 (вписывается в 600x400)
 ```
 
@@ -168,7 +238,8 @@ curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg" \
 | JPEG | `jpeg` или `jpg` | ✅ | ❌ | Лучшее сжатие для фото |
 | PNG | `png` | ❌ | ✅ | Без потерь, для графики |
 | GIF | `gif` | ❌ | ✅ | Ограниченная палитра |
-| WebP | `webp` | ✅ | ✅ | Современный формат |
+| WebP | `webp` | ✅ | ✅ | Современный формат, хорошее сжатие |
+| AVIF | `avif` | ✅ | ✅ | Новейший формат, лучшее сжатие |
 
 ## Производительность и кеширование
 

@@ -48,19 +48,46 @@ type ProcessingParams struct {
 }
 
 // ParseProcessingParams extracts processing parameters from HTTP request.
+// Supports both long and short parameter names (compatible with ipx v2):
+// - w/width, h/height, f/format, q/quality, s/resize, b/background, pos/position
 func ParseProcessingParams(r *http.Request) *ProcessingParams {
 	q := r.URL.Query()
 
+	// Helper to get parameter with fallback to short alias
+	getParam := func(long, short string) string {
+		if val := q.Get(short); val != "" {
+			return val
+		}
+		return q.Get(long)
+	}
+
+	// Parse resize parameter (s=WIDTHxHEIGHT format)
+	var width, height int
+	if resize := getParam("resize", "s"); resize != "" {
+		parts := strings.Split(resize, "x")
+		if len(parts) == 2 {
+			width = parseInt(parts[0])
+			height = parseInt(parts[1])
+		}
+	}
+	// Override with explicit w/h if provided
+	if w := getParam("width", "w"); w != "" {
+		width = parseInt(w)
+	}
+	if h := getParam("height", "h"); h != "" {
+		height = parseInt(h)
+	}
+
 	params := &ProcessingParams{
 		URL:     q.Get("url"),
-		Width:   parseInt(q.Get("w")),
-		Height:  parseInt(q.Get("h")),
-		Quality: parseInt(q.Get("quality")),
-		Format:  ParseFormat(q.Get("format")),
+		Width:   width,
+		Height:  height,
+		Quality: parseInt(getParam("quality", "q")),
+		Format:  ParseFormat(getParam("format", "f")),
 
 		// Resize options
 		Fit:      q.Get("fit"),
-		Position: q.Get("position"),
+		Position: getParam("position", "pos"),
 		Kernel:   q.Get("kernel"),
 		Enlarge:  parseBool(q.Get("enlarge")),
 
@@ -78,7 +105,7 @@ func ParseProcessingParams(r *http.Request) *ProcessingParams {
 		Extend:  q.Get("extend"),
 
 		// Color operations
-		Background: q.Get("background"),
+		Background: getParam("background", "b"),
 		Negate:     parseBool(q.Get("negate")),
 		Normalize:  parseBool(q.Get("normalize")),
 		Threshold:  parseInt(q.Get("threshold")),
@@ -109,8 +136,8 @@ func ParseProcessingParams(r *http.Request) *ProcessingParams {
 
 // NeedsProcessing returns true if any transformation is requested.
 func (p *ProcessingParams) NeedsProcessing(originalFormat Format) bool {
-	return p.Width > 0 || p.Height > 0 || p.Quality != 85 ||
-		(p.Format != "" && p.Format != originalFormat) ||
+	// Check if only format and/or quality change is requested (no actual image processing)
+	hasTransformations := p.Width > 0 || p.Height > 0 ||
 		p.Blur > 0 || p.Sharpen != "" || p.Rotate != 0 ||
 		p.Flip || p.Flop || p.Grayscale ||
 		p.Extract != "" || p.Trim > 0 || p.Extend != "" ||
@@ -118,6 +145,9 @@ func (p *ProcessingParams) NeedsProcessing(originalFormat Format) bool {
 		p.Threshold > 0 || p.Tint != "" || p.Gamma > 0 ||
 		p.Median > 0 || p.Modulate != "" || p.Flatten ||
 		p.Fit != "" || p.Position != "" || p.Kernel != "" || p.Enlarge
+
+	// Only process if there are actual transformations, or format change requested
+	return hasTransformations || (p.Format != "" && p.Format != originalFormat)
 }
 
 // GetOutputFormat returns the output format, using original format if not specified.

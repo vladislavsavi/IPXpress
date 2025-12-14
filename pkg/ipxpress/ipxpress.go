@@ -53,6 +53,7 @@ type Processor struct {
 	err            error
 	originalFormat Format
 	originalSize   int
+	originalData   []byte
 }
 
 // New creates a new Processor instance.
@@ -79,6 +80,7 @@ func (p *Processor) FromBytes(b []byte) *Processor {
 	// Detect original format and store size
 	p.originalFormat = DetectFormat(b)
 	p.originalSize = len(b)
+	p.originalData = b
 
 	return p
 }
@@ -564,7 +566,7 @@ func (p *Processor) ToBytes(format Format, quality int) ([]byte, error) {
 		params.Quality = quality
 		params.Lossless = false
 		params.StripMetadata = true
-		params.ReductionEffort = 4 // 0-6: higher = better compression, slower
+		params.ReductionEffort = 4 // Optimal balance for speed
 		buf, _, err := p.img.ExportWebp(params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode WebP: %w", err)
@@ -574,8 +576,9 @@ func (p *Processor) ToBytes(format Format, quality int) ([]byte, error) {
 	case FormatAVIF:
 		params := vips.NewAvifExportParams()
 		params.Quality = quality
-		params.Speed = 5 // 0-8: higher = faster but worse compression
+		params.Speed = 6 // Fast encoding, good compression
 		params.StripMetadata = true
+		params.Lossless = false
 		buf, _, err := p.img.ExportAvif(params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode AVIF: %w", err)
@@ -604,3 +607,6 @@ func (p *Processor) OriginalFormat() Format { return p.originalFormat }
 
 // OriginalSize returns the size of the original image in bytes.
 func (p *Processor) OriginalSize() int { return p.originalSize }
+
+// OriginalBytes returns the original image bytes if available.
+func (p *Processor) OriginalBytes() []byte { return p.originalData }

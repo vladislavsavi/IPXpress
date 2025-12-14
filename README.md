@@ -62,25 +62,33 @@ go build ./cmd/ipxpress-server
 #### Базовый запрос с изменением размера
 
 ```bash
+# Короткие параметры (совместимы с ipx v2)
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=800&h=600"
+
+# Или используя s (resize)
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&s=800x600"
 ```
 
 #### С контролем качества
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1000&h=500&quality=85&format=jpeg"
+# Короткая форма: f=format, q=quality
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1000&h=500&q=85&f=jpeg"
+
+# Длинная форма
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&width=1000&height=500&quality=85&format=jpeg"
 ```
 
 #### В формате WebP
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1000&h=500&quality=100&format=webp" -o result.webp
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&s=1000x500&q=100&f=webp" -o result.webp
 ```
 
 #### В формате AVIF (современный формат с лучшим сжатием)
 
 ```bash
-curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1200&format=avif&quality=80" -o result.avif
+curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1200&f=avif&q=80" -o result.avif
 ```
 
 #### Применение размытия
@@ -140,20 +148,25 @@ curl "http://localhost:8080/ipx/?url=https://example.com/small.jpg&w=2000&enlarg
 
 ## Параметры API
 
-| Параметр | Описание | Тип | Обязательный |
-|----------|---------|-----|---|
-| `url` | URL изображения | string | ✅ |
-| `w` | Максимальная ширина в пикселях | int | ❌ |
-| `h` | Максимальная высота в пикселях | int | ❌ |
-| `quality` | Качество сжатия (1-100) | int | ❌ |
-| `format` | Формат вывода (jpeg, png, gif, webp, avif) | string | ❌ |
+**Основные параметры** (совместимые с [ipx v2](https://github.com/unjs/ipx)):
+
+| Параметр | Короткий | Описание | Тип | Обязательный |
+|----------|----------|---------|-----|---|
+| `url` | - | URL изображения | string | ✅ |
+| `width` | `w` | Максимальная ширина в пикселях | int | ❌ |
+| `height` | `h` | Максимальная высота в пикселях | int | ❌ |
+| `resize` | `s` | Размер в формате WIDTHxHEIGHT | string | ❌ |
+| `quality` | `q` | Качество сжатия (1-100) | int | ❌ |
+| `format` | `f` | Формат вывода (jpeg, png, gif, webp, avif) | string | ❌ |
+| `background` | `b` | Цвет фона (hex без #) | string | ❌ |
+| `position` | `pos` | Позиция для кропа | string | ❌ |
 
 ### Параметры изменения размера
 
 | Параметр | Описание | Примеры |
 |----------|---------|---------|
 | `fit` | Режим масштабирования | contain, cover, fill, inside, outside |
-| `position` | Позиционирование при кропе | center, top, bottom, left, right, entropy, attention |
+| `position` / `pos` | Позиционирование при кропе | center, top, bottom, left, right, entropy, attention |
 | `kernel` | Алгоритм ресэмплинга | nearest, cubic, mitchell, lanczos2, lanczos3 |
 | `enlarge` | Разрешить увеличение | true, false |
 

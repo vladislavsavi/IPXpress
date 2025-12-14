@@ -60,3 +60,7 @@ func DefaultConfig() *Config {
 		VipsConfig:      nil, // Will use default vips settings
 	}
 }
+
+// NewDefaultConfig is an alias for DefaultConfig to improve discoverability
+// for library clients who look for a constructor-style helper.
+func NewDefaultConfig() *Config { return DefaultConfig() }

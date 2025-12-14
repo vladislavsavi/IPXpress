@@ -18,6 +18,7 @@ IPXpress - это быстрая и гибкая библиотека для о�
 import "github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 
 func main() {
+    // Самый простой способ: дефолтная конфигурация
     handler := ipxpress.NewHandler(nil)
     http.Handle("/img/", http.StripPrefix("/img/", handler))
     http.ListenAndServe(":8080", nil)
@@ -45,6 +46,10 @@ config := &ipxpress.Config{
     CacheTTL:        5 * time.Minute,
 }
 handler := ipxpress.NewHandler(config)
+
+// Явный способ получить дефолтный конфиг
+cfg := ipxpress.NewDefaultConfig()
+handler2 := ipxpress.NewHandler(cfg)
 
 // Добавить в ваш роутер
 http.Handle("/images/", http.StripPrefix("/images/", handler))
@@ -186,12 +191,15 @@ r.PathPrefix("/img/").Handler(http.StripPrefix("/img/", imgHandler))
 // Библиотека автоматически инициализирует vips
 // Вам не нужно вызывать vips.Startup() или vips.Shutdown()
 
-config := &ipxpress.Config{
-    ProcessingLimit: 10,
-    CacheTTL:        30 * time.Minute,
-}
+// Базовый вариант без настроек
+handler := ipxpress.NewHandler(nil)
 
-handler := ipxpress.NewHandler(config)
+// Кастомные настройки при необходимости
+config := ipxpress.NewDefaultConfig()
+config.ProcessingLimit = 10
+config.CacheTTL = 30 * time.Minute
+
+handler = ipxpress.NewHandler(config)
 handler.UseProcessor(ipxpress.AutoOrientProcessor())
 handler.UseProcessor(ipxpress.CompressionOptimizer())
 handler.UseMiddleware(ipxpress.CORSMiddleware([]string{"*"}))
