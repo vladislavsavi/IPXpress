@@ -1,6 +1,7 @@
 package ipxpress
 
 import (
+	"crypto/md5"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -83,7 +84,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Check cache first
 	if entry, found := h.cache.Get(cacheKey); found {
-		h.writeResponse(w, entry)
+		h.writeResponse(w, r, entry)
 		return
 	}
 
@@ -93,7 +94,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		entry := h.createErrorEntry(err)
 		h.cache.Set(cacheKey, entry)
-		h.writeResponse(w, entry)
+		h.writeResponse(w, r, entry)
 		return
 	}
 
@@ -108,7 +109,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.cache.Set(cacheKey, entry)
 
 	// Write response
-	h.writeResponse(w, entry)
+	h.writeResponse(w, r, entry)
 }
 
 // Server returns an http.Handler that processes images from URLs.
@@ -329,7 +330,7 @@ func (h *Handler) applyBuiltInTransformations(proc *Processor, params *Processin
 }
 
 // writeResponse writes a cache entry to the HTTP response writer.
-func (h *Handler) writeResponse(w http.ResponseWriter, entry *CacheEntry) {
+func (h *Handler) writeResponse(w http.ResponseWriter, r *http.Request, entry *CacheEntry) {
 	if entry.ErrorMsg != "" {
 		w.WriteHeader(entry.StatusCode)
 		w.Write([]byte(entry.ErrorMsg))
@@ -351,10 +352,33 @@ func (h *Handler) writeResponse(w http.ResponseWriter, entry *CacheEntry) {
 	w.Header().Set("Content-Type", ct)
 	// Prefer inline display universally to avoid forced downloads
 	w.Header().Set("Content-Disposition", "inline")
-	if ct == "application/octet-stream" {
-		w.Header().Set("Cache-Control", "public, max-age=31536000")
+
+	// Compute and set ETag if enabled
+	if h.config != nil && h.config.EnableETag {
+		sum := md5.Sum(entry.Data)
+		etag := fmt.Sprintf("\"%x\"", sum)
+		w.Header().Set("ETag", etag)
+
+		// If client sent If-None-Match and matches, return 304
+		if inm := r.Header.Get("If-None-Match"); inm != "" && inm == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+
+	// Cache-Control headers: use config
+	maxAge := 604800
+	sMaxAge := 0
+	if h.config != nil {
+		if h.config.ClientMaxAge > 0 {
+			maxAge = h.config.ClientMaxAge
+		}
+		sMaxAge = h.config.SMaxAge
+	}
+	if sMaxAge > 0 {
+		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, s-maxage=%d", maxAge, sMaxAge))
 	} else {
-		w.Header().Set("Cache-Control", "public, max-age=604800")
+		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", maxAge))
 	}
 
 	w.WriteHeader(entry.StatusCode)

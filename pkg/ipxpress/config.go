@@ -49,6 +49,15 @@ type Config struct {
 	// VipsConfig holds libvips-specific configuration
 	// If nil, default vips settings will be used
 	VipsConfig *VipsConfig
+
+	// ClientMaxAge controls Cache-Control max-age for clients (in seconds)
+	ClientMaxAge int
+
+	// SMaxAge controls Cache-Control s-maxage for shared caches/CDNs (in seconds). 0 disables.
+	SMaxAge int
+
+	// EnableETag enables ETag generation and If-None-Match handling
+	EnableETag bool
 }
 
 // DefaultConfig returns the default configuration.
@@ -57,7 +66,10 @@ func DefaultConfig() *Config {
 		CacheTTL:        30 * time.Second,
 		ProcessingLimit: 256,
 		CleanupInterval: 30 * time.Second,
-		VipsConfig:      nil, // Will use default vips settings
+		VipsConfig:      nil,    // Will use default vips settings
+		ClientMaxAge:    604800, // 7 days
+		SMaxAge:         0,
+		EnableETag:      true,
 	}
 }
 

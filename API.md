@@ -70,7 +70,8 @@ http://localhost:8080/ipx/
 
 - `Content-Type`: MIME тип изображения (`image/jpeg`, `image/png`, и т.д.)
 - `Content-Length`: Размер изображения в байтах
-- `Cache-Control`: Директивы кеширования
+- `Cache-Control`: Директивы кеширования (настраиваются через конфиг)
+- `ETag`: Хэш контента для условных запросов (если включено)
 
 #### Коды ответа
 
@@ -190,6 +191,28 @@ curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&s=800x600&f=w
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg" -o original.jpg
 ```
+
+## Кеширование
+
+### Внутренний кеш
+
+- In-memory кеш на уровне сервера. TTL задаётся `Config.CacheTTL` (по умолчанию `30s`).
+
+### HTTP кеширование
+
+- Управляется конфигом обработчика:
+
+```go
+cfg := ipxpress.NewDefaultConfig()
+cfg.ClientMaxAge = 3600 // Cache-Control: max-age
+cfg.SMaxAge = 3600      // Cache-Control: s-maxage (CDN)
+cfg.EnableETag = true   // ETag + If-None-Match => 304
+handler := ipxpress.NewHandler(cfg)
+```
+
+- Клиентская сторона/Кэширующие прокси:
+  - При совпадении `If-None-Match` с `ETag` сервер вернёт `304 Not Modified`.
+  - При заданном `s-maxage` CDN сможет хранить результат независимо от `max-age` клиента.
 
 ## Поведение resize
 

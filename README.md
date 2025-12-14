@@ -161,6 +161,24 @@ curl "http://localhost:8080/ipx/?url=https://example.com/small.jpg&w=2000&enlarg
 | `background` | `b` | Цвет фона (hex без #) | string | ❌ |
 | `position` | `pos` | Позиция для кропа | string | ❌ |
 
+### Кеширование и заголовки
+
+- **Внутренний кеш**: in-memory, TTL управляется `Config.CacheTTL` (по умолчанию 30s).
+- **HTTP кеширование**:
+	- `Cache-Control`: настраивается через `Config.ClientMaxAge` и `Config.SMaxAge`.
+	- `ETag`: включено по умолчанию (`Config.EnableETag=true`). Совпадение `If-None-Match` возвращает `304`.
+
+Пример конфигурации (как библиотека):
+
+```go
+cfg := ipxpress.NewDefaultConfig()
+cfg.ClientMaxAge = 3600 // 1 час для клиентов
+cfg.SMaxAge = 3600      // 1 час для CDN/shared cache
+cfg.CacheTTL = 10 * time.Minute
+cfg.EnableETag = true
+handler := ipxpress.NewHandler(cfg)
+```
+
 ### Параметры изменения размера
 
 | Параметр | Описание | Примеры |
