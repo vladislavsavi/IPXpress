@@ -338,9 +338,11 @@ func (h *Handler) writeResponse(w http.ResponseWriter, r *http.Request, entry *C
 	}
 
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(entry.Data)))
+
+	// Use cached ContentType, but fall back to detection only if not set
 	ct := entry.ContentType
-	if ct == "" || ct == "application/octet-stream" {
-		// Try to detect format from bytes to set a proper image content type
+	if ct == "" {
+		// Only detect format if ContentType was not explicitly set
 		detected := DetectFormat(entry.Data)
 		if detected != "" {
 			ct = detected.ContentType()
@@ -349,6 +351,7 @@ func (h *Handler) writeResponse(w http.ResponseWriter, r *http.Request, entry *C
 			ct = "application/octet-stream"
 		}
 	}
+
 	w.Header().Set("Content-Type", ct)
 	// Prefer inline display universally to avoid forced downloads
 	w.Header().Set("Content-Disposition", "inline")
