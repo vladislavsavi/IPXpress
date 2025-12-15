@@ -230,6 +230,91 @@ func processImage(inputData []byte) ([]byte, error) {
 }
 ```
 
+## Advanced: Using Any libvips Function
+
+IPXpress provides full access to libvips capabilities through multiple methods:
+
+### Method 1: Direct ImageRef Access
+
+```go
+proc := ipxpress.New().FromBytes(imageData)
+
+// Get direct access to the underlying vips.ImageRef
+img := proc.ImageRef()
+if img != nil {
+    // Use ANY libvips function directly
+    img.Blur(2.0)
+    img.Sharpen(1.5, 0.5, 1.0)
+    img.Modulate(1.1, 1.2, 0)
+    img.Median(3)
+    img.Tint(&vips.Color{R: 255, G: 200, B: 124})
+    // ... any method from vips.ImageRef
+}
+
+output, _ := proc.ToBytes(ipxpress.FormatJPEG, 85)
+```
+
+### Method 2: ApplyFunc
+
+```go
+proc := ipxpress.New().
+    FromBytes(imageData).
+    ApplyFunc(func(img *vips.ImageRef) error {
+        if err := img.Blur(2.0); err != nil {
+            return err
+        }
+        return img.Sharpen(1.5, 0.5, 1.0)
+    })
+
+if proc.Err() != nil {
+    return proc.Err()
+}
+
+output, _ := proc.ToBytes(ipxpress.FormatJPEG, 85)
+```
+
+### Method 3: VipsOperationBuilder
+
+```go
+proc := ipxpress.New().FromBytes(imageData)
+
+builder := ipxpress.NewVipsOperationBuilder(proc)
+err := builder.
+    Blur(2.0).
+    Sharpen(1.5, 0.5, 1.0).
+    Modulate(1.1, 1.2, 0).
+    Median(3).
+    Error()
+
+if err != nil {
+    return err
+}
+
+output, _ := proc.ToBytes(ipxpress.FormatJPEG, 85)
+```
+
+### Method 4: Custom Operations in Processors
+
+```go
+handler := ipxpress.NewHandler(nil)
+
+// Add a custom processor with advanced operations
+handler.UseProcessor(func(p *ipxpress.Processor, params *ipxpress.ProcessingParams) *ipxpress.Processor {
+    return p.ApplyFunc(func(img *vips.ImageRef) error {
+        // Apply any sequence of libvips functions
+        if err := img.Blur(1.0); err != nil {
+            return err
+        }
+        if err := img.Sharpen(2.0, 0.5, 1.0); err != nil {
+            return err
+        }
+        return img.Modulate(1.05, 1.1, 0)
+    })
+})
+```
+
+See [CUSTOM_OPERATIONS.md](CUSTOM_OPERATIONS.md) for detailed examples and predefined operation factories.
+
 ## API Endpoints
 
 Once integrated, your handler responds to:

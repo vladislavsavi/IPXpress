@@ -610,3 +610,42 @@ func (p *Processor) OriginalSize() int { return p.originalSize }
 
 // OriginalBytes returns the original image bytes if available.
 func (p *Processor) OriginalBytes() []byte { return p.originalData }
+
+// ImageRef returns the underlying vips.ImageRef for direct manipulation.
+// This allows users to apply any libvips function not directly exposed by IPXpress.
+// Important: The returned ImageRef is managed by the Processor and will be closed
+// when the Processor is closed. Do not manually close it.
+func (p *Processor) ImageRef() *vips.ImageRef {
+	return p.img
+}
+
+// ApplyFunc applies a custom function to the image.
+// The function receives the current ImageRef and should return an error if the operation fails.
+// This is useful for applying libvips functions that IPXpress doesn't directly expose.
+//
+// Example:
+//
+//	processor.ApplyFunc(func(img *vips.ImageRef) error {
+//	    return img.Sharpen(1.5, 0.5)
+//	})
+func (p *Processor) ApplyFunc(fn func(*vips.ImageRef) error) *Processor {
+	if p.err != nil {
+		return p
+	}
+	if p.img == nil {
+		p.err = errors.New("no image loaded")
+		return p
+	}
+
+	if fn == nil {
+		p.err = errors.New("function cannot be nil")
+		return p
+	}
+
+	p.err = fn(p.img)
+	if p.err != nil {
+		p.err = fmt.Errorf("custom function failed: %w", p.err)
+	}
+
+	return p
+}

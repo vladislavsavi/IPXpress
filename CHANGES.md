@@ -1,5 +1,24 @@
 # Изменения в IPXpress
 
+## v0.2.0 (2025-12-15)
+
+**Расширение функциональности для использования любых функций libvips:**
+
+- **Прямой доступ к ImageRef**: метод `ImageRef()` для получения прямого доступа к `vips.ImageRef` и использования любых функций libvips.
+- **ApplyFunc метод**: применение пользовательских функций обработки с автоматической обработкой ошибок и поддержкой цепочки операций.
+- **VipsOperationBuilder (fluent API)**: удобный интерфейс для цепочки операций с методами `Blur()`, `Sharpen()`, `Modulate()`, `Median()`, `Flatten()`, `Invert()`.
+- **CustomOperation тип**: для создания переиспользуемых пользовательских операций.
+- **Встроенные операции**: `GaussianBlurOperation()`, `EdgeDetectionOperation()`, `SepiaOperation()`, `BrightnessOperation()`, `SaturationOperation()`, `ContrastOperation()`.
+- **Документация**: новый файл `CUSTOM_OPERATIONS.md` с полными примерами.
+- **Юнит-тесты**: полное покрытие в `extensions_test.go`.
+
+Примеры использования:
+```go
+// Прямой доступ: img := proc.ImageRef()
+// ApplyFunc: proc.ApplyFunc(func(img *vips.ImageRef) error { ... })
+// Builder: builder.Blur(2.0).Sharpen(1.5, 0.5, 1.0)
+```
+
 ## v0.1.0 (2025-12-14)
 
 Основные улучшения и фиксы:
@@ -38,6 +57,7 @@ handler := ipxpress.NewHandler(cfg)
 - Обновлены `README.md`, `README.library.md`, `API.md` — разделы про кеширование и дефолтные настройки.
 
 ### 1. Расширяемая архитектура обработчика
+
 
 **Добавлены новые типы:**
 - `ProcessorFunc` - функция для кастомной обработки изображений
