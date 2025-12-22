@@ -27,9 +27,9 @@ type VipsConfig struct {
 // DefaultVipsConfig returns default vips configuration.
 func DefaultVipsConfig() *VipsConfig {
 	return &VipsConfig{
-		ConcurrencyLevel: 0,    // Use all available cores
-		MaxCacheMem:      2048, // 2GB
-		MaxCacheSize:     5000,
+		ConcurrencyLevel: 0, // Use all available cores
+		MaxCacheMem:      0, // Disable libvips cache (we use app-level caching)
+		MaxCacheSize:     0, // Disable libvips cache
 		MaxCacheFiles:    0,
 		LogLevel:         vips.LogLevelWarning,
 	}
