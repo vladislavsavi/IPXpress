@@ -17,10 +17,10 @@ func main() {
 	// Create handler with custom config including vips settings
 	config := ipxpress.DefaultConfig()
 	config.VipsConfig = &ipxpress.VipsConfig{
-		ConcurrencyLevel: 0,    // Use all available CPU cores
-		MaxCacheMem:      2048, // 2GB cache - more space for concurrent images
-		MaxCacheSize:     5000, // 5000 images in cache - handle more concurrent requests
-		MaxCacheFiles:    0,    // No file cache (memory only is faster)
+		ConcurrencyLevel: 0, // Use all available CPU cores
+		MaxCacheMem:      0, // Disable libvips caching (we manage cache at application level)
+		MaxCacheSize:     0, // Disable libvips caching
+		MaxCacheFiles:    0, // No file cache
 		LogLevel:         vips.LogLevelWarning,
 	}
 

@@ -249,8 +249,8 @@ Output Bytes
 
 - Немедленное освобождение после обработки (`proc.Close()`)
 - libvips настройки:
-  - MaxCacheMem: 2048 MB
-  - MaxCacheSize: 5000 изображений
+  - MaxCacheMem: 0 MB (кеширование на уровне приложения)
+  - MaxCacheSize: 0 изображений
   - ConcurrencyLevel: 0 (все ядра CPU)
 
 ## API
