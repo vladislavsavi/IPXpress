@@ -1,5 +1,12 @@
 # IPXpress Changes
 
+## v1.0.0 (2026-02-13)
+
+**Documentation updates:**
+
+- Add package docs for `cmd/ipxpress` so pkg.go.dev shows usage information for the CLI.
+- Documentation translated and aligned across Markdown files.
+
 ## v0.3.0 (2026-02-11)
 
 **Memory and caching optimization:**
