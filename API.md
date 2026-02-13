@@ -1,10 +1,10 @@
-# API Документация IPXpress
+# IPXpress API Documentation
 
-## Обзор
+## Overview
 
-IPXpress предоставляет REST API для обработки изображений в реальном времени. Сервис загружает изображения по URL, применяет трансформации и возвращает результат.
+IPXpress provides a REST API for real-time image processing. The service fetches images by URL, applies transformations, and returns the result.
 
-## Базовый URL
+## Base URL
 
 ```
 http://localhost:8080/ipx/
@@ -14,193 +14,193 @@ http://localhost:8080/ipx/
 
 ### GET /ipx/
 
-Обрабатывает изображение с заданными параметрами.
+Processes an image with the specified parameters.
 
-#### Параметры запроса
+#### Query parameters
 
-**Основные параметры:**
+**Core parameters:**
 
-| Параметр | Короткий | Тип | Обязательный | По умолчанию | Описание |
+| Parameter | Short | Type | Required | Default | Description |
 |----------|----------|-----|--------------|--------------|----------|
-| `url` | - | string | **Да** | - | URL изображения для обработки (HTTP/HTTPS) |
-| `width` | `w` | integer | Нет | - | Максимальная ширина в пикселях |
-| `height` | `h` | integer | Нет | - | Максимальная высота в пикселях |
-| `resize` | `s` | string | Нет | - | Размер в формате `WIDTHxHEIGHT` (например, `800x600`) |
-| `quality` | `q` | integer | Нет | 85 | Качество сжатия для JPEG/WebP/AVIF (1-100) |
-| `format` | `f` | string | Нет | original | Формат вывода: `jpeg`, `png`, `gif`, `webp`, `avif` |
+| `url` | - | string | **Yes** | - | Image URL to process (HTTP/HTTPS) |
+| `width` | `w` | integer | No | - | Max width in pixels |
+| `height` | `h` | integer | No | - | Max height in pixels |
+| `resize` | `s` | string | No | - | Size in `WIDTHxHEIGHT` format (for example, `800x600`) |
+| `quality` | `q` | integer | No | 85 | Compression quality for JPEG/WebP/AVIF (1-100) |
+| `format` | `f` | string | No | original | Output format: `jpeg`, `png`, `gif`, `webp`, `avif` |
 
-**Параметры изменения размера:**
+**Resize parameters:**
 
-| Параметр | Короткий | Тип | По умолчанию | Описание |
+| Parameter | Short | Type | Default | Description |
 |----------|----------|-----|--------------|----------|
-| `fit` | - | string | - | Режим масштабирования: `contain`, `cover`, `fill`, `inside`, `outside` |
-| `position` | `pos` | string | - | Позиция для обрезки: `top`, `bottom`, `left`, `right`, `centre`, `entropy`, `attention` |
-| `kernel` | - | string | `lanczos3` | Алгоритм масштабирования: `nearest`, `cubic`, `mitchell`, `lanczos2`, `lanczos3` |
-| `enlarge` | - | boolean | `false` | Разрешить увеличение изображения выше исходного размера |
+| `fit` | - | string | - | Fit mode: `contain`, `cover`, `fill`, `inside`, `outside` |
+| `position` | `pos` | string | - | Crop position: `top`, `bottom`, `left`, `right`, `centre`, `entropy`, `attention` |
+| `kernel` | - | string | `lanczos3` | Resampling algorithm: `nearest`, `cubic`, `mitchell`, `lanczos2`, `lanczos3` |
+| `enlarge` | - | boolean | `false` | Allow upscaling above original size |
 
-**Операции кадрирования и расширения:**
+**Crop and extend operations:**
 
-| Параметр | Описание | Пример |
+| Parameter | Description | Example |
 |----------|----------|--------|
-| `extract` | Извлечь регион: `left_top_width_height` | `extract=10_10_200_200` |
-| `trim` | Обрезать края по порогу | `trim=10` |
-| `extend` | Добавить рамку: `top_right_bottom_left` | `extend=10_10_10_10` |
-| `background` | `b` | Цвет фона (hex) | `background=ff0000` или `b=ff0000` |
+| `extract` | Extract region: `left_top_width_height` | `extract=10_10_200_200` |
+| `trim` | Trim edges by threshold | `trim=10` |
+| `extend` | Add border: `top_right_bottom_left` | `extend=10_10_10_10` |
+| `background` | `b` | Background color (hex) | `background=ff0000` or `b=ff0000` |
 
-**Эффекты и фильтры:**
+**Effects and filters:**
 
-| Параметр | Описание | Пример |
+| Parameter | Description | Example |
 |----------|----------|--------|
-| `blur` | Размытие (sigma) | `blur=5` |
-| `sharpen` | Резкость: `sigma_flat_jagged` | `sharpen=1.5_1_2` |
-| `rotate` | Поворот в градусах (90/180/270) | `rotate=90` |
-| `flip` | Отразить вертикально | `flip=true` |
-| `flop` | Отразить горизонтально | `flop=true` |
-| `grayscale` | Перевести в градации серого | `grayscale=true` |
-| `negate` | Инвертировать цвета | `negate=true` |
-| `normalize` | Нормализовать | `normalize=true` |
-| `gamma` | Гамма-коррекция | `gamma=2.2` |
-| `median` | Медианный фильтр | `median=3` |
-| `threshold` | Порог бинаризации | `threshold=128` |
-| `tint` | Оттенок (hex) | `tint=00ff00` |
-| `modulate` | Модуляция: `brightness_saturation_hue` | `modulate=1.2_0.8_90` |
-| `flatten` | Удалить прозрачность | `flatten=true` |
+| `blur` | Blur (sigma) | `blur=5` |
+| `sharpen` | Sharpen: `sigma_flat_jagged` | `sharpen=1.5_1_2` |
+| `rotate` | Rotate in degrees (90/180/270) | `rotate=90` |
+| `flip` | Vertical flip | `flip=true` |
+| `flop` | Horizontal flip | `flop=true` |
+| `grayscale` | Convert to grayscale | `grayscale=true` |
+| `negate` | Invert colors | `negate=true` |
+| `normalize` | Normalize | `normalize=true` |
+| `gamma` | Gamma correction | `gamma=2.2` |
+| `median` | Median filter | `median=3` |
+| `threshold` | Threshold for binarization | `threshold=128` |
+| `tint` | Tint (hex) | `tint=00ff00` |
+| `modulate` | Modulate: `brightness_saturation_hue` | `modulate=1.2_0.8_90` |
+| `flatten` | Remove transparency | `flatten=true` |
 
-#### Заголовки ответа
+#### Response headers
 
-- `Content-Type`: MIME тип изображения (`image/jpeg`, `image/png`, и т.д.)
-- `Content-Length`: Размер изображения в байтах
-- `Cache-Control`: Директивы кеширования (настраиваются через конфиг)
-- `ETag`: Хэш контента для условных запросов (если включено)
+- `Content-Type`: image MIME type (`image/jpeg`, `image/png`, etc.)
+- `Content-Length`: size in bytes
+- `Cache-Control`: caching directives (configurable)
+- `ETag`: content hash for conditional requests (if enabled)
 
-#### Коды ответа
+#### Response codes
 
-| Код | Описание |
+| Code | Description |
 |-----|----------|
-| 200 | Успешная обработка изображения |
-| 400 | Неверные параметры запроса |
-| 500 | Внутренняя ошибка сервера |
+| 200 | Image processed successfully |
+| 400 | Invalid request parameters |
+| 500 | Internal server error |
 
-## Примеры использования
+## Usage examples
 
-### 1. Базовое изменение размера
+### 1. Basic resize
 
-Изменить размер изображения с сохранением пропорций:
+Resize with aspect ratio preserved:
 
 ```bash
-# Используя короткий параметр
+# Short parameter
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=800" -o resized.jpg
 
-# Используя длинный параметр
+# Long parameter
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&width=800" -o resized.jpg
 ```
 
-**Поведение:**
-- Ширина будет 800px
-- Высота вычисляется автоматически для сохранения пропорций
-- Формат остается оригинальным
+**Behavior:**
+- Width will be 800px
+- Height is calculated automatically
+- Original format is preserved
 
-### 2. Изменение размера с обеими размерностями
+### 2. Resize with both dimensions
 
-Вписать изображение в прямоугольник 1000x600:
+Fit the image into a 1000x600 box:
 
 ```bash
-# Короткая форма
+# Short form
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=1000&h=600" -o fitted.jpg
 
-# Или используя параметр s (resize)
+# Or using s (resize)
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&s=1000x600" -o fitted.jpg
 ```
 
-**Поведение:**
-- Изображение масштабируется так, чтобы поместиться в 1000x600
-- Пропорции сохраняются
-- Итоговый размер может быть меньше указанного
+**Behavior:**
+- Image scales to fit within 1000x600
+- Aspect ratio is preserved
+- Final size can be smaller than requested
 
-### 3. Конвертация формата
+### 3. Format conversion
 
-Конвертировать JPEG в WebP:
+Convert JPEG to WebP:
 
 ```bash
-# Короткая форма (f)
+# Short form (f)
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&f=webp" -o photo.webp
 
-# Длинная форма (format)
+# Long form (format)
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&format=webp" -o photo.webp
 ```
 
-### 4. Конвертация в PNG без сжатия
+### 4. Convert to PNG without compression
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&f=png" -o photo.png
 ```
 
-**Примечание:** PNG не поддерживает параметр `quality`, он игнорируется.
+**Note:** PNG does not support `quality`, it is ignored.
 
-### 5. Изменение размера с контролем качества
+### 5. Resize with quality control
 
 ```bash
-# Короткая форма
+# Short form
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=1200&q=95" -o high-quality.jpg
 
-# Длинная форма
+# Long form
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&width=1200&quality=95" -o high-quality.jpg
 ```
 
-**Рекомендации по качеству:**
-- `70-80`: Хорошее качество, меньший размер файла
-- `85` (default): Оптимальный баланс
-- `90-100`: Высокое качество, больший размер файла
+**Quality guidance:**
+- `70-80`: good quality, smaller file size
+- `85` (default): best balance
+- `90-100`: high quality, larger file size
 
-### 6. Оптимизация для веба (WebP + качество)
+### 6. Web optimization (WebP + quality)
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/large.jpg&w=1200&f=webp&q=80" -o optimized.webp
 ```
 
-### 7. Создание превью
+### 7. Thumbnail creation
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&s=200x200&q=75" -o thumbnail.jpg
 ```
 
-### 8. Размытие и другие эффекты
+### 8. Blur and other effects
 
 ```bash
-# Размытие
+# Blur
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&blur=5" -o blurred.jpg
 
-# Черно-белое
+# Grayscale
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&grayscale=true" -o bw.jpg
 
-# Поворот на 90 градусов
+# Rotate 90 degrees
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&rotate=90" -o rotated.jpg
 ```
 
-### 9. Комбинирование параметров
+### 9. Combine parameters
 
 ```bash
-# Resize + format + quality + эффект
+# Resize + format + quality + effect
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg&s=800x600&f=webp&q=85&sharpen=1.5_1_2" -o processed.webp
 ```
 
-### 10. Получение оригинального изображения
+### 10. Get original image
 
-Если не указаны параметры трансформации, возвращается оригинал:
+If no transform parameters are set, the original is returned:
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg" -o original.jpg
 ```
 
-## Кеширование
+## Caching
 
-### Внутренний кеш
+### Internal cache
 
-- In-memory кеш на уровне сервера. TTL задаётся `Config.CacheTTL` (по умолчанию `30s`).
+- In-memory cache at the server level. TTL is set by `Config.CacheTTL` (default `30s`).
 
-### HTTP кеширование
+### HTTP caching
 
-- Управляется конфигом обработчика:
+- Managed by handler config:
 
 ```go
 cfg := ipxpress.NewDefaultConfig()
@@ -210,108 +210,108 @@ cfg.EnableETag = true   // ETag + If-None-Match => 304
 handler := ipxpress.NewHandler(cfg)
 ```
 
-- Клиентская сторона/Кэширующие прокси:
-  - При совпадении `If-None-Match` с `ETag` сервер вернёт `304 Not Modified`.
-  - При заданном `s-maxage` CDN сможет хранить результат независимо от `max-age` клиента.
+- Client side / caching proxies:
+  - If `If-None-Match` matches `ETag`, server returns `304 Not Modified`.
+  - With `s-maxage`, a CDN can cache independently of client `max-age`.
 
-## Поведение resize
+## Resize behavior
 
-### Только ширина (w)
+### Width only (w)
 
 ```bash
 ?url=https://example.com/1000x500.jpg&w=500
-# Результат: 500x250
+# Result: 500x250
 ```
 
-Высота масштабируется пропорционально.
+Height scales proportionally.
 
-### Только высота (h)
+### Height only (h)
 
 ```bash
 ?url=https://example.com/1000x500.jpg&h=100
-# Результат: 200x100
+# Result: 200x100
 ```
 
-Ширина масштабируется пропорционально.
+Width scales proportionally.
 
-### Ширина и высота (w + h или s)
+### Width and height (w + h or s)
 
 ```bash
 ?url=https://example.com/1000x500.jpg&w=600&h=400
-# или
+# or
 ?url=https://example.com/1000x500.jpg&s=600x400
-# Результат: 600x300 (вписывается в 600x400)
+# Result: 600x300 (fits within 600x400)
 ```
 
-Изображение масштабируется так, чтобы поместиться в заданный прямоугольник, сохраняя пропорции.
+Image scales to fit within the specified rectangle while preserving aspect ratio.
 
-## Поддерживаемые форматы
+## Supported formats
 
-### Входные форматы
+### Input formats
 
 - JPEG / JPG
-- PNG (включая прозрачность)
-- GIF (статичные)
+- PNG (including transparency)
+- GIF (static)
 - WebP
 
-### Выходные форматы
+### Output formats
 
-| Формат | Значение | Качество | Прозрачность | Примечания |
+| Format | Value | Quality | Transparency | Notes |
 |--------|----------|----------|--------------|------------|
-| JPEG | `jpeg` или `jpg` | ✅ | ❌ | Лучшее сжатие для фото |
-| PNG | `png` | ❌ | ✅ | Без потерь, для графики |
-| GIF | `gif` | ❌ | ✅ | Ограниченная палитра |
-| WebP | `webp` | ✅ | ✅ | Современный формат, хорошее сжатие |
-| AVIF | `avif` | ✅ | ✅ | Новейший формат, лучшее сжатие |
+| JPEG | `jpeg` or `jpg` | Yes | No | Best compression for photos |
+| PNG | `png` | No | Yes | Lossless, for graphics |
+| GIF | `gif` | No | Yes | Limited palette |
+| WebP | `webp` | Yes | Yes | Modern format, good compression |
+| AVIF | `avif` | Yes | Yes | Newest format, best compression |
 
-## Производительность и кеширование
+## Performance and caching
 
-### Кеширование
+### Caching
 
-Сервис кеширует обработанные изображения на **30 секунд**. Повторные запросы с теми же параметрами обрабатываются мгновенно.
+The service caches processed images for **30 seconds**. Repeat requests with the same parameters are served instantly.
 
-**Ключ кеша:**
+**Cache key:**
 ```
 MD5(url + width + height + quality + format)
 ```
 
-### Заголовки Cache-Control
+### Cache-Control headers
 
 ```
-Cache-Control: public, max-age=604800  # Обработанные изображения (7 дней)
-Cache-Control: public, max-age=31536000 # Оригинальные изображения (1 год)
+Cache-Control: public, max-age=604800  # Processed images (7 days)
+Cache-Control: public, max-age=31536000 # Original images (1 year)
 ```
 
-### Рекомендации
+### Recommendations
 
-1. **CDN:** Разместите IPXpress за CDN для лучшей производительности
-2. **URL стабильность:** Используйте стабильные URL изображений
-3. **Пакетная обработка:** Отправляйте запросы параллельно
+1. **CDN:** Put IPXpress behind a CDN for better performance
+2. **Stable URLs:** Use stable image URLs
+3. **Batch processing:** Send requests in parallel
 
-## Ограничения
+## Limits
 
-### Текущие ограничения
+### Current limits
 
-- Максимум 256 одновременных обработок
-- Timeout на загрузку: 20 секунд
-- Timeout на подключение: 5 секунд
-- Только HTTP/HTTPS URL
+- Maximum 256 concurrent processing operations
+- Fetch timeout: 20 seconds
+- Connect timeout: 5 seconds
+- HTTP/HTTPS URLs only
 
-### Рекомендуемые практики
+### Recommended practices
 
-1. **Размер изображений:**
-   - Входные: до 20-30 MP
-   - Выходные: разумные размеры (до 4000px по большей стороне)
+1. **Image sizes:**
+   - Input: up to 20-30 MP
+   - Output: reasonable sizes (up to 4000px on the longer side)
 
 2. **Rate limiting:**
-   - Рекомендуется ограничить количество запросов на клиента
-   - Используйте nginx/haproxy для rate limiting
+   - Limit requests per client
+   - Use nginx/haproxy for rate limiting
 
-3. **Мониторинг:**
-   - Отслеживайте latency и error rate
-   - Настройте алерты на 5xx ошибки
+3. **Monitoring:**
+   - Track latency and error rate
+   - Configure alerts for 5xx errors
 
-## Интеграция
+## Integration
 
 ### JavaScript / Fetch API
 
@@ -363,65 +363,65 @@ func main() {
     params.Add("url", "https://example.com/photo.jpg")
     params.Add("w", "800")
     params.Add("format", "webp")
-    
+
     apiURL := "http://localhost:8080/ipx/?" + params.Encode()
-    
+
     resp, err := http.Get(apiURL)
     if err != nil {
         panic(err)
     }
     defer resp.Body.Close()
-    
+
     out, err := os.Create("output.webp")
     if err != nil {
         panic(err)
     }
     defer out.Close()
-    
+
     io.Copy(out, resp.Body)
 }
 ```
 
-### HTML (прямое использование)
+### HTML (direct usage)
 
 ```html
-<img src="http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=400&format=webp" 
+<img src="http://localhost:8080/ipx/?url=https://example.com/photo.jpg&w=400&format=webp"
      alt="Processed image">
 ```
 
-## Обработка ошибок
+## Error handling
 
-### Примеры ошибок
+### Error examples
 
-#### Отсутствует URL
+#### Missing URL
 
 ```bash
 curl "http://localhost:8080/ipx/"
 # HTTP 400: missing image URL
 ```
 
-#### Неверный URL
+#### Invalid URL
 
 ```bash
 curl "http://localhost:8080/ipx/?url=not-a-valid-url"
 # HTTP 400: invalid image URL: ...
 ```
 
-#### Недоступное изображение
+#### Unavailable image
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/404.jpg"
 # HTTP 400: image fetch failed with status 404
 ```
 
-#### Ошибка обработки
+#### Processing error
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/corrupted.jpg&w=800"
 # HTTP 500: processing: failed to decode image
 ```
 
-### Обработка в коде
+### Handling in code
 
 ```javascript
 fetch(apiUrl)
@@ -438,7 +438,7 @@ fetch(apiUrl)
   });
 ```
 
-## Health Check
+## Health check
 
 ### Endpoint
 
@@ -446,17 +446,17 @@ fetch(apiUrl)
 GET /health
 ```
 
-### Пример
+### Example
 
 ```bash
 curl http://localhost:8080/health
 # OK
 ```
 
-Используйте для мониторинга доступности сервиса.
+Use this endpoint to monitor service availability.
 
-## Дополнительные ресурсы
+## Additional resources
 
-- [README.md](README.md) - Общая информация о проекте
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Архитектура и внутреннее устройство
-- [Примеры использования](examples/) - Больше примеров интеграции
+- [README.md](README.md) - Project overview
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Architecture and internals
+- [Examples](examples/) - More integration examples

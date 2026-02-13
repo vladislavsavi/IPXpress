@@ -1,239 +1,239 @@
 # IPXpress
 
-IPXpress — высокопроизводительный сервис обработки изображений на Go с поддержкой множества форматов и полного доступа к функциям libvips.
+IPXpress is a high-performance image processing service in Go with support for multiple formats and full access to libvips features.
 
-## Особенности
+## Features
 
-- ✅ Загрузка изображений по URL (HTTP/HTTPS)
-- ✅ Изменение размера с сохранением пропорций (Lanczos фильтр)
-- ✅ Поддержка форматов: **JPEG, PNG, GIF, WebP, AVIF**
-- ✅ Контроль качества сжатия (1-100)
-- ✅ **Полный доступ к любым функциям libvips** через `ImageRef()`, `ApplyFunc()` и `VipsOperationBuilder`
-- ✅ REST API сервис
-- ✅ Встроенное кеширование
-- ✅ Расширяемая архитектура с процессорами и middleware
+- Load images from URLs (HTTP/HTTPS)
+- Resize while preserving aspect ratio (Lanczos filter)
+- Supported formats: **JPEG, PNG, GIF, WebP, AVIF**
+- Compression quality control (1-100)
+- Full access to any libvips function via `ImageRef()`, `ApplyFunc()`, and `VipsOperationBuilder`
+- REST API service
+- Built-in caching
+- Extensible architecture with processors and middleware
 
-## Поддерживаемые форматы
+## Supported Formats
 
-| Формат | Декодирование | Кодирование | Качество |
+| Format | Decoding | Encoding | Quality |
 |--------|---|---|---|
-| JPEG | ✅ | ✅ | ✅ |
-| PNG | ✅ | ✅ | ❌ |
-| GIF | ✅ | ✅ | ❌ |
-| WebP | ✅ | ✅ | ✅ |
-| AVIF | ✅ | ✅ | ✅ |
+| JPEG | Yes | Yes | Yes |
+| PNG | Yes | Yes | No |
+| GIF | Yes | Yes | No |
+| WebP | Yes | Yes | Yes |
+| AVIF | Yes | Yes | Yes |
 
-## Структура проекта
+## Project Structure
 
 ```
 .
 ├── cmd/
-│   └── ipxpress/          # HTTP сервер
-├── pkg/ipxpress/          # Основная библиотека
-│   ├── cache.go           # Система кеширования
-│   ├── config.go          # Конфигурация
-│   ├── extensions.go      # Расширения libvips (новое)
-│   ├── fetcher.go         # Загрузка изображений
-│   ├── format.go          # Форматы изображений
+│   └── ipxpress/          # HTTP server
+├── pkg/ipxpress/          # Main library
+│   ├── cache.go           # Caching system
+│   ├── config.go          # Configuration
+│   ├── extensions.go      # libvips extensions (new)
+│   ├── fetcher.go         # Image fetching
+│   ├── format.go          # Image formats
 │   ├── ipxpress.go        # Image Processor
-│   ├── params.go          # Параметры запроса
+│   ├── params.go          # Request parameters
 │   ├── server.go          # HTTP handler
-│   └── *_test.go          # Тесты
-├── ARCHITECTURE.md        # Архитектура проекта
-├── API.md                 # API документация
-├── CUSTOM_OPERATIONS.md   # Использование libvips (новое)
-├── CONTRIBUTING.md        # Руководство для разработчиков
-└── README.md              # Этот файл
+│   └── *_test.go          # Tests
+├── ARCHITECTURE.md        # Project architecture
+├── API.md                 # API documentation
+├── CUSTOM_OPERATIONS.md   # libvips usage (new)
+├── CONTRIBUTING.md        # Developer guide
+└── README.md              # This file
 ```
 
-## Быстрый старт
+## Quick Start
 
-### Сборка сервера
+### Build the server
 
 ```bash
 go build ./cmd/ipxpress-server
 ```
 
-### Запуск сервера
+### Run the server
 
 ```bash
 ./ipxpress-server -addr :8080
 ```
 
-Сервер будет доступен по адресу `http://localhost:8080/ipx/`
+The server will be available at `http://localhost:8080/ipx/`
 
-### Примеры запросов
+### Request Examples
 
-#### Базовый запрос с изменением размера
+#### Basic resize request
 
 ```bash
-# Короткие параметры (совместимы с ipx v2)
+# Short parameters (compatible with ipx v2)
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=800&h=600"
 
-# Или используя s (resize)
+# Or using s (resize)
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&s=800x600"
 ```
 
-#### С контролем качества
+#### With quality control
 
 ```bash
-# Короткая форма: f=format, q=quality
+# Short form: f=format, q=quality
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1000&h=500&q=85&f=jpeg"
 
-# Длинная форма
+# Long form
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&width=1000&height=500&quality=85&format=jpeg"
 ```
 
-#### В формате WebP
+#### WebP output
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&s=1000x500&q=100&f=webp" -o result.webp
 ```
 
-#### В формате AVIF (современный формат с лучшим сжатием)
+#### AVIF output (modern format with better compression)
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=1200&f=avif&q=80" -o result.avif
 ```
 
-#### Применение размытия
+#### Apply blur
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&blur=5.0" -o blurred.jpg
 ```
 
-#### Увеличение резкости
+#### Sharpen
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&sharpen=1.5_1_2" -o sharp.jpg
 ```
 
-#### Поворот на 90 градусов
+#### Rotate 90 degrees
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&rotate=90" -o rotated.jpg
 ```
 
-#### Отражение (flip/flop)
+#### Flip/flop
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&flip=true" -o flipped.jpg
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&flop=true" -o flopped.jpg
 ```
 
-#### Преобразование в ч/б
+#### Grayscale
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&grayscale=true" -o grayscale.jpg
 ```
 
-#### Вырезать область (crop)
+#### Crop (extract area)
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&extract=100_100_400_400" -o cropped.jpg
 ```
 
-#### Комбинирование эффектов
+#### Combine effects
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=800&grayscale=true&sharpen=1.0&quality=90&format=webp" -o processed.webp
 ```
 
-#### С выбором алгоритма ресэмплинга
+#### Choose resampling kernel
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/image.jpg&w=200&kernel=lanczos3" -o resized.jpg
 ```
 
-#### Разрешить увеличение (upscale)
+#### Allow upscale
 
 ```bash
 curl "http://localhost:8080/ipx/?url=https://example.com/small.jpg&w=2000&enlarge=true" -o enlarged.jpg
 ```
 
-## Параметры API
+## API Parameters
 
-**Основные параметры** (совместимые с [ipx v2](https://github.com/unjs/ipx)):
+**Core parameters** (compatible with [ipx v2](https://github.com/unjs/ipx)):
 
-| Параметр | Короткий | Описание | Тип | Обязательный |
+| Parameter | Short | Description | Type | Required |
 |----------|----------|---------|-----|---|
-| `url` | - | URL изображения | string | ✅ |
-| `width` | `w` | Максимальная ширина в пикселях | int | ❌ |
-| `height` | `h` | Максимальная высота в пикселях | int | ❌ |
-| `resize` | `s` | Размер в формате WIDTHxHEIGHT | string | ❌ |
-| `quality` | `q` | Качество сжатия (1-100) | int | ❌ |
-| `format` | `f` | Формат вывода (jpeg, png, gif, webp, avif) | string | ❌ |
-| `background` | `b` | Цвет фона (hex без #) | string | ❌ |
-| `position` | `pos` | Позиция для кропа | string | ❌ |
+| `url` | - | Image URL | string | Yes |
+| `width` | `w` | Maximum width in pixels | int | No |
+| `height` | `h` | Maximum height in pixels | int | No |
+| `resize` | `s` | Size in WIDTHxHEIGHT format | string | No |
+| `quality` | `q` | Compression quality (1-100) | int | No |
+| `format` | `f` | Output format (jpeg, png, gif, webp, avif) | string | No |
+| `background` | `b` | Background color (hex without #) | string | No |
+| `position` | `pos` | Crop position | string | No |
 
-### Кеширование и заголовки
+### Caching and headers
 
-- **Внутренний кеш**: in-memory, TTL управляется `Config.CacheTTL` (по умолчанию 30s).
-- **HTTP кеширование**:
-	- `Cache-Control`: настраивается через `Config.ClientMaxAge` и `Config.SMaxAge`.
-	- `ETag`: включено по умолчанию (`Config.EnableETag=true`). Совпадение `If-None-Match` возвращает `304`.
+- Internal cache: in-memory, TTL is controlled by `Config.CacheTTL` (default 30s).
+- HTTP caching:
+	- `Cache-Control`: configured via `Config.ClientMaxAge` and `Config.SMaxAge`.
+	- `ETag`: enabled by default (`Config.EnableETag=true`). `If-None-Match` matches return `304`.
 
-Пример конфигурации (как библиотека):
+Example configuration (as a library):
 
 ```go
 cfg := ipxpress.NewDefaultConfig()
-cfg.ClientMaxAge = 3600 // 1 час для клиентов
-cfg.SMaxAge = 3600      // 1 час для CDN/shared cache
+cfg.ClientMaxAge = 3600 // 1 hour for clients
+cfg.SMaxAge = 3600      // 1 hour for CDN/shared cache
 cfg.CacheTTL = 10 * time.Minute
 cfg.EnableETag = true
 handler := ipxpress.NewHandler(cfg)
 ```
 
-### Параметры изменения размера
+### Resize parameters
 
-| Параметр | Описание | Примеры |
+| Parameter | Description | Examples |
 |----------|---------|---------|
-| `fit` | Режим масштабирования | contain, cover, fill, inside, outside |
-| `position` / `pos` | Позиционирование при кропе | center, top, bottom, left, right, entropy, attention |
-| `kernel` | Алгоритм ресэмплинга | nearest, cubic, mitchell, lanczos2, lanczos3 |
-| `enlarge` | Разрешить увеличение | true, false |
+| `fit` | Fit mode | contain, cover, fill, inside, outside |
+| `position` / `pos` | Crop position | center, top, bottom, left, right, entropy, attention |
+| `kernel` | Resampling algorithm | nearest, cubic, mitchell, lanczos2, lanczos3 |
+| `enlarge` | Allow upscaling | true, false |
 
-### Операции обработки
+### Processing operations
 
-| Параметр | Описание | Формат значения |
+| Parameter | Description | Value format |
 |----------|---------|-----------------|
-| `blur` | Размытие по Гауссу | sigma (float, например 5.0) |
-| `sharpen` | Увеличение резкости | sigma_flat_jagged (например "1.5_1_2") |
-| `rotate` | Поворот изображения | 0, 90, 180, 270 (градусы) |
-| `flip` | Отразить вертикально | true |
-| `flop` | Отразить горизонтально | true |
-| `grayscale` | Преобразовать в ч/б | true |
+| `blur` | Gaussian blur | sigma (float, for example 5.0) |
+| `sharpen` | Sharpen | sigma_flat_jagged (for example "1.5_1_2") |
+| `rotate` | Image rotation | 0, 90, 180, 270 (degrees) |
+| `flip` | Vertical flip | true |
+| `flop` | Horizontal flip | true |
+| `grayscale` | Convert to grayscale | true |
 
-### Кадрирование и расширение
+### Crop and extend
 
-| Параметр | Описание | Формат значения |
+| Parameter | Description | Value format |
 |----------|---------|-----------------|
-| `extract` | Вырезать область | left_top_width_height (например "10_10_200_200") |
-| `extend` | Добавить границы | top_right_bottom_left (например "10_10_10_10") |
+| `extract` | Extract area | left_top_width_height (for example "10_10_200_200") |
+| `extend` | Add borders | top_right_bottom_left (for example "10_10_10_10") |
 
-### Цветовые операции
+### Color operations
 
-| Параметр | Описание | Формат значения |
+| Parameter | Description | Value format |
 |----------|---------|-----------------|
-| `background` | Цвет фона | hex без # (например "ffffff" или "fff") |
-| `negate` | Инвертировать цвета | true |
-| `normalize` | Нормализация | true |
-| `gamma` | Гамма коррекция | float (например 2.2) |
-| `modulate` | Модуляция HSB | brightness_saturation_hue (например "1.2_0.8_90") |
-| `flatten` | Удалить альфа канал | true |
+| `background` | Background color | hex without # (for example "ffffff" or "fff") |
+| `negate` | Invert colors | true |
+| `normalize` | Normalize | true |
+| `gamma` | Gamma correction | float (for example 2.2) |
+| `modulate` | HSB modulation | brightness_saturation_hue (for example "1.2_0.8_90") |
+| `flatten` | Remove alpha channel | true |
 
-**Поведение resize:**
-- Если указана только ширина (`w`) — высота масштабируется пропорционально
-- Если указана только высота (`h`) — ширина масштабируется пропорционально
-- Если указаны обе — изображение масштабируется в наибольший размер, который поместится в прямоугольник
+**Resize behavior:**
+- If only width (`w`) is set, height scales proportionally
+- If only height (`h`) is set, width scales proportionally
+- If both are set, the image scales to the largest size that fits the rectangle
 
-## Документация
+## Documentation
 
-- **[API.md](API.md)** - Полная документация API с примерами
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Архитектура и внутреннее устройство
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Руководство для разработчиков
+- **[API.md](API.md)** - Full API documentation with examples
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Architecture and internals
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Developer guide
 
-## Использование как библиотека
+## Using as a library
 
 ```go
 package main
@@ -243,7 +243,7 @@ import (
 )
 
 func main() {
-	// Загрузить изображение из байтов
+	// Load an image from bytes
 	proc := ipxpress.New().
 		FromBytes(imageBytes).
 		Resize(800, 600)
@@ -252,32 +252,31 @@ func main() {
 		panic(err)
 	}
 	
-	// Закодировать в WebP с качеством 85
+	// Encode to WebP with quality 85
 	output, err := proc.ToBytes("webp", 85)
 	if err != nil {
 		panic(err)
 	}
 	
-	// Использовать output...
+	// Use output...
 }
 ```
 
-## Тесты
-
+## Tests
 
 ```bash
 go test ./pkg/ipxpress
 ```
 
-## Зависимости
+## Dependencies
 
-- `github.com/davidbyttow/govips/v2` — Go binding для libvips (обработка изображений с нативной поддержкой JPEG, PNG, GIF, WebP, AVIF)
+- `github.com/davidbyttow/govips/v2` - Go bindings for libvips (image processing with native support for JPEG, PNG, GIF, WebP, AVIF)
 
-**Примечание:** Требуется установленная библиотека libvips. См. [инструкции по установке](https://github.com/davidbyttow/govips#prerequisites).
+**Note:** libvips must be installed. See [installation instructions](https://github.com/davidbyttow/govips#prerequisites).
 
-Библиотека автоматически инициализирует libvips при первом использовании, поэтому вам не нужно вручную вызывать `vips.Startup()` или `vips.Shutdown()`.
+The library automatically initializes libvips on first use, so you do not need to call `vips.Startup()` or `vips.Shutdown()` manually.
 
-## Лицензия
+## License
 
 MIT
 

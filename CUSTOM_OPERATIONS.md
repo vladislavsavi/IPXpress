@@ -1,23 +1,23 @@
-# Расширение IPXpress: Использование любых функций libvips
+# Extending IPXpress: Using Any libvips Function
 
-## Обзор
+## Overview
 
-IPXpress предоставляет несколько способов использовать любые функции из libvips, без ограничений встроенными методами библиотеки. Это позволяет вам применять произвольные трансформации изображений.
+IPXpress provides several ways to use any libvips function without being limited to built-in methods. This lets you apply arbitrary image transformations.
 
-## Методы расширения
+## Extension methods
 
 ### 1. Direct ImageRef Access - `ImageRef()`
 
-Получите прямой доступ к базовому объекту `vips.ImageRef` для использования любых функций libvips.
+Get direct access to the underlying `vips.ImageRef` and call any libvips function.
 
 ```go
 processor := ipxpress.New()
 processor.FromBytes(imageData)
 
-// Получить доступ к ImageRef и использовать любые функции libvips
+// Access ImageRef and use any libvips function
 imgRef := processor.ImageRef()
 if imgRef != nil {
-    // Используйте любые методы libvips напрямую
+    // Call any libvips methods directly
     imgRef.Blur(2.5)
     imgRef.Sharpen(1.5, 0.5, 1.0)
     imgRef.Modulate(1.1, 1.2, 0)
@@ -26,17 +26,17 @@ if imgRef != nil {
 result, err := processor.ToBytes(ipxpress.FormatJPEG, 85)
 ```
 
-### 2. ApplyFunc - Функции обратного вызова
+### 2. ApplyFunc - Callback functions
 
-Используйте метод `ApplyFunc` для применения пользовательских функций обработки с автоматическим управлением ошибками.
+Use `ApplyFunc` to run custom processing functions with automatic error handling.
 
 ```go
 processor := ipxpress.New()
 processor.FromBytes(imageData)
 
-// Применить пользовательскую функцию
+// Apply a custom function
 processor.ApplyFunc(func(img *vips.ImageRef) error {
-    // Можно использовать любые функции libvips
+    // You can use any libvips functions
     if err := img.Blur(2.0); err != nil {
         return err
     }
@@ -52,7 +52,7 @@ result, err := processor.ToBytes(ipxpress.FormatWebP, 80)
 
 ### 3. VipsOperationBuilder - Fluent API
 
-Построить цепочку операций с удобным интерфейсом и обработкой ошибок:
+Build an operation chain with a convenient interface and error handling:
 
 ```go
 processor := ipxpress.New()
@@ -73,19 +73,19 @@ if err != nil {
 result, err := processor.ToBytes(ipxpress.FormatJPEG, 85)
 ```
 
-### 4. CustomOperation - Пользовательские операции как процессоры
+### 4. CustomOperation - Custom operations as processors
 
-Создавайте переиспользуемые пользовательские операции:
+Create reusable custom operations:
 
 ```go
-// Определить пользовательскую операцию
+// Define a custom operation
 applySepiaEffect := func(p *ipxpress.Processor, params *ipxpress.ProcessingParams) error {
     img := p.ImageRef()
     if img == nil {
         return errors.New("no image loaded")
     }
-    
-    // Применить эффект сепия
+
+    // Apply sepia effect
     if err := img.Modulate(1.0, 0.0, 0); err != nil {
         return err
     }
@@ -93,32 +93,32 @@ applySepiaEffect := func(p *ipxpress.Processor, params *ipxpress.ProcessingParam
     return img.Tint(sepiaColor)
 }
 
-// Использовать операцию
+// Use the operation
 processor := ipxpress.New()
 processor.FromBytes(imageData)
 processor.ApplyCustom(applySepiaEffect, nil)
 ```
 
-### 5. Процессоры в обработчике
+### 5. Processors in the handler
 
-Добавляйте пользовательские операции в pipeline обработки запросов:
+Add custom operations to the request processing pipeline:
 
 ```go
 config := &ipxpress.Config{ProcessingLimit: 10}
 handler := ipxpress.NewHandler(config)
 
-// Добавить пользовательский обработчик с любой операцией libvips
+// Add a custom processor with any libvips operation
 handler.UseProcessor(func(p *ipxpress.Processor, params *ipxpress.ProcessingParams) *ipxpress.Processor {
     return p.ApplyFunc(func(img *vips.ImageRef) error {
-        // Применить любую операцию libvips
+        // Apply any libvips operation
         return img.Blur(1.5)
     })
 })
 
-// Или используя встроенные операции
+// Or use built-in operations
 handler.UseProcessor(func(p *ipxpress.Processor, params *ipxpress.ProcessingParams) *ipxpress.Processor {
     return p.ApplyFunc(func(img *vips.ImageRef) error {
-        // Применить сложную операцию
+        // Apply a more complex operation
         if err := img.Sharpen(2.0, 0.5, 1.0); err != nil {
             return err
         }
@@ -131,9 +131,9 @@ mux.Handle("/img/", http.StripPrefix("/img/", handler))
 http.ListenAndServe(":8080", mux)
 ```
 
-## Примеры использования
+## Usage examples
 
-### Пример 1: Применение фильтра размытия с резкостью
+### Example 1: Blur with sharpening
 
 ```go
 processor := ipxpress.New()
@@ -148,17 +148,17 @@ processor.FromBytes(imageData).
 result, _ := processor.ToBytes(ipxpress.FormatJPEG, 90)
 ```
 
-### Пример 2: Создание эффекта сепия
+### Example 2: Sepia effect
 
 ```go
 processor := ipxpress.New()
 processor.FromBytes(imageData).
     ApplyFunc(func(img *vips.ImageRef) error {
-        // Преобразовать в оттенки серого
+        // Convert to grayscale
         if err := img.Modulate(1.0, 0.0, 0); err != nil {
             return err
         }
-        // Применить сепия оттенок
+        // Apply sepia tint
         sepiaColor := &vips.Color{R: 255, G: 200, B: 124}
         return img.Tint(sepiaColor)
     })
@@ -166,76 +166,76 @@ processor.FromBytes(imageData).
 result, _ := processor.ToBytes(ipxpress.FormatJPEG, 85)
 ```
 
-### Пример 3: Регулировка контраста и яркости
+### Example 3: Contrast and brightness adjustment
 
 ```go
 processor := ipxpress.New()
 processor.FromBytes(imageData).
     ApplyFunc(func(img *vips.ImageRef) error {
-        // Увеличить яркость на 10% и насыщенность на 20%
+        // Increase brightness by 10% and saturation by 20%
         return img.Modulate(1.1, 1.2, 0)
     }).
     ApplyFunc(func(img *vips.ImageRef) error {
-        // Увеличить контраст
+        // Increase contrast
         return img.Linear([]float64{1.3}, []float64{0})
     })
 
 result, _ := processor.ToBytes(ipxpress.FormatWebP, 80)
 ```
 
-### Пример 4: Создание миниатюры со специальной обработкой
+### Example 4: Thumbnail with special processing
 
 ```go
 processor := ipxpress.New()
 processor.FromBytes(imageData).
     Resize(200, 200).
     ApplyFunc(func(img *vips.ImageRef) error {
-        // Применить фильтр размытия для миниатюры
+        // Blur for the thumbnail
         if err := img.Blur(1.0); err != nil {
             return err
         }
-        // Применить резкость
+        // Sharpen
         return img.Sharpen(1.5, 0.5, 1.0)
     })
 
 result, _ := processor.ToBytes(ipxpress.FormatJPEG, 75)
 ```
 
-### Пример 5: Использование встроенных предопределенных операций
+### Example 5: Using built-in predefined operations
 
 ```go
 processor := ipxpress.New()
 processor.FromBytes(imageData)
 
-// Используйте встроенные factory функции для создания операций
+// Use built-in factory functions to create operations
 processor.ApplyCustom(ipxpress.GaussianBlurOperation(2.5), nil).
     ApplyCustom(ipxpress.SaturationOperation(1.2), nil)
 
 result, _ := processor.ToBytes(ipxpress.FormatJPEG, 85)
 ```
 
-## Доступные встроенные операции
+## Built-in operations
 
-IPXpress предоставляет factory функции для часто используемых операций:
+IPXpress provides factory functions for common operations:
 
-- `GaussianBlurOperation(sigma)` - Размытие Гаусса
-- `EdgeDetectionOperation(kernel)` - Обнаружение краев
-- `SepiaOperation()` - Эффект сепия
-- `BrightnessOperation(brightness)` - Регулировка яркости
-- `SaturationOperation(saturation)` - Регулировка насыщенности
-- `ContrastOperation(contrast)` - Регулировка контраста
+- `GaussianBlurOperation(sigma)` - Gaussian blur
+- `EdgeDetectionOperation(kernel)` - Edge detection
+- `SepiaOperation()` - Sepia effect
+- `BrightnessOperation(brightness)` - Brightness adjustment
+- `SaturationOperation(saturation)` - Saturation adjustment
+- `ContrastOperation(contrast)` - Contrast adjustment
 
-## VipsOperationBuilder - Встроенные методы
+## VipsOperationBuilder - Built-in methods
 
-Builder предоставляет удобные методы для цепочки операций:
+The builder provides convenient chain methods:
 
 ```go
 builder := ipxpress.NewVipsOperationBuilder(processor)
 err := builder.
-    Blur(2.0).                    // Гауссово размытие (GaussianBlur)
-    Sharpen(1.5, 0.5, 1.0).      // Резкость
-    Modulate(1.1, 1.2, 0).        // Яркость, насыщенность, оттенок
-    Median(3).                    // Размытие (медианное/гауссово)
+    Blur(2.0).                    // Gaussian blur
+    Sharpen(1.5, 0.5, 1.0).      // Sharpen
+    Modulate(1.1, 1.2, 0).        // Brightness, saturation, hue
+    Median(3).                    // Median filter
     Error()
 
 if err != nil {
@@ -243,9 +243,9 @@ if err != nil {
 }
 ```
 
-## Полный доступ к libvips
+## Full access to libvips
 
-Если вам нужна операция, не включенная в встроенные методы, используйте `ImageRef()` напрямую:
+If you need an operation not included in built-in methods, use `ImageRef()` directly:
 
 ```go
 processor := ipxpress.New()
@@ -253,18 +253,18 @@ processor.FromBytes(imageData)
 
 img := processor.ImageRef()
 if img != nil {
-    // Полный доступ ко всем методам vips.ImageRef
+    // Full access to all vips.ImageRef methods
     img.Blur(...)
     img.Sharpen(...)
     img.Convolve(...)
     img.Composite(...)
-    // и т.д.
+    // etc.
 }
 ```
 
-## Обработка ошибок
+## Error handling
 
-Все методы поддерживают цепочку и обработку ошибок:
+All methods support chaining and error handling:
 
 ```go
 processor := ipxpress.New()
@@ -275,24 +275,24 @@ processor.FromBytes(imageData).
     })
 
 if processor.Err() != nil {
-    log.Printf("Ошибка обработки: %v", processor.Err())
+    log.Printf("Processing error: %v", processor.Err())
     return
 }
 
 result, err := processor.ToBytes(ipxpress.FormatJPEG, 85)
 if err != nil {
-    log.Printf("Ошибка кодирования: %v", err)
+    log.Printf("Encoding error: %v", err)
 }
 ```
 
-## Производительность
+## Performance
 
-- Все операции работают в памяти благодаря libvips
-- Используется кэширование на уровне Handler
-- Поддерживаются одновременные запросы (настраивается через `ProcessingLimit`)
-- Автоматическое управление памятью при закрытии Processor
+- All operations run in memory via libvips
+- Caching is handled at the Handler level
+- Concurrent requests are supported (configured via `ProcessingLimit`)
+- Automatic memory management on Processor close
 
-## Закрытие ресурсов
+## Resource cleanup
 
 ```go
 processor := ipxpress.New()
@@ -303,6 +303,6 @@ processor.FromBytes(imageData).
     })
 
 result, _ := processor.ToBytes(ipxpress.FormatJPEG, 85)
-processor.Close() // Важно: освободить ресурсы
+processor.Close() // Important: free resources
 ```
 

@@ -1,307 +1,307 @@
-# Архитектура IPXpress
+# IPXpress Architecture
 
-## Обзор
+## Overview
 
-IPXpress — это высокопроизводительный HTTP-сервис для обработки изображений на Go с использованием libvips. Проект спроектирован с учетом масштабируемости, производительности и читаемости кода.
+IPXpress is a high-performance HTTP image processing service in Go built on libvips. The project is designed for scalability, performance, and code readability.
 
-## Структура проекта
+## Project Structure
 
 ```
 IPXpress/
 ├── cmd/
-│   └── ipxpress/           # Точка входа приложения
-│       └── main.go         # HTTP сервер с инициализацией libvips
+│   └── ipxpress/           # Application entry point
+│       └── main.go         # HTTP server with libvips init
 ├── pkg/
-│   └── ipxpress/           # Основной пакет библиотеки
-│       ├── cache.go        # Система кеширования
-│       ├── config.go       # Конфигурация сервиса
-│       ├── fetcher.go      # Загрузка изображений по URL
-│       ├── format.go       # Работа с форматами изображений
-│       ├── ipxpress.go     # Ядро обработки изображений (Processor)
-│       ├── params.go       # Парсинг параметров запроса
-│       ├── server.go       # HTTP обработчик запросов
-│       ├── *_test.go       # Тесты
+│   └── ipxpress/           # Main library package
+│       ├── cache.go        # Caching system
+│       ├── config.go       # Service configuration
+│       ├── fetcher.go      # Image fetching by URL
+│       ├── format.go       # Image formats
+│       ├── ipxpress.go     # Image processing core (Processor)
+│       ├── params.go       # Request parameter parsing
+│       ├── server.go       # HTTP request handler
+│       ├── *_test.go       # Tests
 │       └── ...
-├── static/                 # Статические файлы (если есть)
-├── go.mod                  # Go модуль
-├── Dockerfile              # Docker образ
-└── README.md               # Документация проекта
+├── static/                 # Static files (if any)
+├── go.mod                  # Go module
+├── Dockerfile              # Docker image
+└── README.md               # Project documentation
 ```
 
-## Компоненты системы
+## System Components
 
 ### 1. **Processor** (`ipxpress.go`)
 
-Ядро системы обработки изображений. Использует chainable API для последовательного применения трансформаций.
+Core image processing pipeline. Uses a chainable API to apply transformations in sequence.
 
-**Основные возможности:**
-- Загрузка изображений из байтов или io.Reader
-- Изменение размера с сохранением пропорций (Lanczos3)
-- Кодирование в различные форматы (JPEG, PNG, GIF, WebP)
-- Автоматическое определение формата исходного изображения
-- Управление памятью через libvips
+**Key capabilities:**
+- Load images from bytes or io.Reader
+- Resize with aspect ratio preserved (Lanczos3)
+- Encode to various formats (JPEG, PNG, GIF, WebP)
+- Auto-detect source image format
+- Memory management via libvips
 
-**Пример использования:**
+**Example:**
 ```go
 proc := ipxpress.New().
     FromBytes(imageData).
     Resize(800, 600)
 
 if err := proc.Err(); err != nil {
-    // обработка ошибки
+    // handle error
 }
 
 output, err := proc.ToBytes(ipxpress.FormatJPEG, 85)
-proc.Close() // освобождение памяти
+proc.Close() // free memory
 ```
 
 ### 2. **Format** (`format.go`)
 
-Модуль для работы с форматами изображений.
+Image format utilities.
 
-**Возможности:**
-- Типизированные константы форматов (FormatJPEG, FormatPNG, FormatGIF, FormatWebP)
-- Автоматическое определение формата по магическим байтам
-- Получение MIME типа для HTTP заголовков
-- Валидация форматов
+**Capabilities:**
+- Typed format constants (FormatJPEG, FormatPNG, FormatGIF, FormatWebP)
+- Auto-detect format by magic bytes
+- MIME type lookup for HTTP headers
+- Format validation
 
-**Примеры:**
+**Examples:**
 ```go
-// Определение формата
+// Detect format
 format := ipxpress.DetectFormat(imageData)
 
-// Парсинг строки формата
+// Parse format string
 format := ipxpress.ParseFormat("jpeg") // returns FormatJPEG
 
-// MIME тип
+// MIME type
 contentType := format.ContentType() // "image/jpeg"
 ```
 
 ### 3. **Cache** (`cache.go`)
 
-Система кеширования ответов с TTL (Time To Live).
+Response cache with TTL (Time To Live).
 
-**Архитектура:**
-- Интерфейс `Cache` для различных реализаций
-- Реализация `InMemoryCache` с sync.RWMutex
-- Автоматическая очистка устаревших записей
-- Кеширование как успешных ответов, так и ошибок
+**Architecture:**
+- `Cache` interface for multiple implementations
+- `InMemoryCache` with sync.RWMutex
+- Automatic cleanup of expired entries
+- Caches both successful responses and errors
 
-**Структура записи:**
+**Entry structure:**
 ```go
 type CacheEntry struct {
-    ContentType string    // MIME тип ответа
-    Data        []byte    // Данные изображения
-    StatusCode  int       // HTTP статус
-    ErrorMsg    string    // Сообщение об ошибке (если есть)
-    Timestamp   time.Time // Время создания записи
+    ContentType string    // Response MIME type
+    Data        []byte    // Image data
+    StatusCode  int       // HTTP status
+    ErrorMsg    string    // Error message (if any)
+    Timestamp   time.Time // Entry creation time
 }
 ```
 
 ### 4. **Fetcher** (`fetcher.go`)
 
-Модуль загрузки изображений по URL.
+Image download module.
 
-**Возможности:**
-- HTTP/HTTPS поддержка
-- Connection pooling для высокой производительности
-- Валидация URL
-- Настраиваемые timeouts
-- User-Agent для обхода базовых ограничений
+**Capabilities:**
+- HTTP/HTTPS support
+- Connection pooling for high performance
+- URL validation
+- Configurable timeouts
+- User-Agent for basic restrictions
 
-**Конфигурация HTTP клиента:**
+**HTTP client configuration:**
 ```go
-- Timeout: 20 секунд
+- Timeout: 20 seconds
 - MaxIdleConns: 500
 - MaxIdleConnsPerHost: 100
 - MaxConnsPerHost: 256
-- DialTimeout: 5 секунд
-- KeepAlive: 30 секунд
+- DialTimeout: 5 seconds
+- KeepAlive: 30 seconds
 ```
 
 ### 5. **Params** (`params.go`)
 
-Парсинг и валидация параметров HTTP запроса.
+HTTP request parameter parsing and validation.
 
-**Структура:**
+**Structure:**
 ```go
 type ProcessingParams struct {
-    URL     string  // URL изображения
-    Width   int     // Максимальная ширина
-    Height  int     // Максимальная высота
-    Quality int     // Качество (1-100)
-    Format  Format  // Формат вывода
+    URL     string  // Image URL
+    Width   int     // Max width
+    Height  int     // Max height
+    Quality int     // Quality (1-100)
+    Format  Format  // Output format
 }
 ```
 
-**Логика обработки:**
-- Автоматическая валидация параметров
-- Значение quality по умолчанию: 85
-- Определение необходимости обработки
-- Выбор формата вывода (original или указанный)
+**Logic:**
+- Automatic parameter validation
+- Default quality: 85
+- Decide if processing is required
+- Choose output format (original or explicit)
 
 ### 6. **Server** (`server.go`)
 
-HTTP обработчик запросов к сервису.
+HTTP handler for service requests.
 
-**Архитектура Handler:**
+**Handler structure:**
 ```go
 type Handler struct {
-    cache           Cache           // Система кеширования
-    fetcher         *Fetcher        // Загрузчик изображений
-    config          *Config         // Конфигурация
-    processingLimit chan struct{}   // Семафор для ограничения конкурентности
+    cache           Cache           // Cache system
+    fetcher         *Fetcher        // Image fetcher
+    config          *Config         // Configuration
+    processingLimit chan struct{}   // Semaphore to limit concurrency
 }
 ```
 
-**Поток обработки запроса:**
-1. Парсинг параметров запроса
-2. Проверка кеша (быстрый путь)
-3. Загрузка изображения (параллельно, I/O bound)
-4. Обработка изображения (с ограничением конкурентности, CPU bound)
-5. Кеширование результата
-6. Отправка ответа клиенту
+**Request flow:**
+1. Parse request parameters
+2. Cache lookup (fast path)
+3. Fetch image (parallel, I/O bound)
+4. Process image (concurrency limited, CPU bound)
+5. Cache result
+6. Write response
 
-**Оптимизации:**
-- Двухстадийная обработка: сначала I/O (параллельно), затем CPU (с семафором)
-- Кеширование ошибок для предотвращения повторных обращений
-- Connection pooling для исходящих HTTP запросов
-- Оптимизированные HTTP заголовки (Cache-Control)
+**Optimizations:**
+- Two-stage processing: I/O first (parallel), CPU with a semaphore
+- Cache errors to avoid repeated fetches
+- Connection pooling for outgoing HTTP requests
+- Optimized HTTP headers (Cache-Control)
 
 ### 7. **Config** (`config.go`)
 
-Конфигурация сервиса.
+Service configuration.
 
 ```go
 type Config struct {
-    CacheTTL        time.Duration // TTL кеша (30 сек)
-    ProcessingLimit int           // Макс. одновременных обработок (256)
-    CleanupInterval time.Duration // Интервал очистки кеша (30 сек)
+    CacheTTL        time.Duration // Cache TTL (30 seconds)
+    ProcessingLimit int           // Max concurrent processing (256)
+    CleanupInterval time.Duration // Cache cleanup interval (30 seconds)
 }
 ```
 
-## Потоки данных
+## Data Flow
 
-### Обработка запроса
+### Request processing
 
 ```
 HTTP Request
-    ↓
-[ParseParams] → ProcessingParams
-    ↓
-[Cache Check] → Hit? → [Write Response]
-    ↓ Miss
-[Fetch Image] → imageData (parallel, no semaphore)
-    ↓
-[Acquire Semaphore] → limit concurrent processing
-    ↓
-[Process Image] → Processor chain
-    ↓
-[Encode Output] → output bytes
-    ↓
+    |
+[ParseParams] -> ProcessingParams
+    |
+[Cache Check] -> Hit? -> [Write Response]
+    | Miss
+[Fetch Image] -> imageData (parallel, no semaphore)
+    |
+[Acquire Semaphore] -> limit concurrent processing
+    |
+[Process Image] -> Processor chain
+    |
+[Encode Output] -> output bytes
+    |
 [Release Semaphore]
-    ↓
+    |
 [Cache Result]
-    ↓
+    |
 [Write Response]
 ```
 
-### Обработка изображения (Processor)
+### Image processing (Processor)
 
 ```
 Image Bytes
-    ↓
-[Detect Format] → Format
-    ↓
-[Decode with libvips] → vips.ImageRef
-    ↓
-[Resize (optional)] → transformed ImageRef
-    ↓
-[Encode to Format] → output bytes
-    ↓
+    |
+[Detect Format] -> Format
+    |
+[Decode with libvips] -> vips.ImageRef
+    |
+[Resize (optional)] -> transformed ImageRef
+    |
+[Encode to Format] -> output bytes
+    |
 [Close/Free Memory]
-    ↓
+    |
 Output Bytes
 ```
 
-## Конкурентность и производительность
+## Concurrency and Performance
 
-### Стратегия обработки
+### Processing strategy
 
-1. **Фаза I/O (без ограничений):**
-   - Загрузка изображений по HTTP
-   - Проверка кеша
-   - Параллельная обработка множества запросов
+1. **I/O phase (no limits):**
+   - Fetch images via HTTP
+   - Cache lookup
+   - Parallel handling of many requests
 
-2. **Фаза CPU (с семафором):**
-   - Обработка изображений через libvips
-   - Ограничение: 256 одновременных операций
-   - Предотвращение перегрузки памяти
+2. **CPU phase (with semaphore):**
+   - Process images via libvips
+   - Limit: 256 concurrent operations
+   - Avoid memory pressure
 
-### Кеширование
+### Caching
 
-- **Ключ кеша:** MD5(url|width|height|quality|format)
-- **TTL:** 30 секунд (настраивается)
-- **Очистка:** Периодическая (каждые 30 сек)
-- **Хранение:** In-memory (быстрый доступ)
+- **Cache key:** MD5(url|width|height|quality|format)
+- **TTL:** 30 seconds (configurable)
+- **Cleanup:** periodic (every 30 seconds)
+- **Storage:** in-memory (fast access)
 
-### Управление памятью
+### Memory management
 
-- Немедленное освобождение после обработки (`proc.Close()`)
-- libvips настройки:
-  - MaxCacheMem: 0 MB (кеширование на уровне приложения)
-  - MaxCacheSize: 0 изображений
-  - ConcurrencyLevel: 0 (все ядра CPU)
+- Immediate release after processing (`proc.Close()`)
+- libvips settings:
+  - MaxCacheMem: 0 MB (application-level caching)
+  - MaxCacheSize: 0 images
+  - ConcurrencyLevel: 0 (use all CPU cores)
 
 ## API
 
-### HTTP Endpoint
+### HTTP endpoint
 
 **URL:** `/ipx/`
 
-**Параметры запроса:**
+**Query parameters:**
 
-| Параметр | Тип | Обязательный | Описание |
+| Parameter | Type | Required | Description |
 |----------|-----|--------------|----------|
-| `url` | string | ✅ | URL изображения (HTTP/HTTPS) |
-| `w` | int | ❌ | Максимальная ширина в пикселях |
-| `h` | int | ❌ | Максимальная высота в пикселях |
-| `quality` | int | ❌ | Качество сжатия (1-100, default: 85) |
-| `format` | string | ❌ | Формат вывода (jpeg, png, gif, webp) |
+| `url` | string | Yes | Image URL (HTTP/HTTPS) |
+| `w` | int | No | Max width in pixels |
+| `h` | int | No | Max height in pixels |
+| `quality` | int | No | Compression quality (1-100, default: 85) |
+| `format` | string | No | Output format (jpeg, png, gif, webp) |
 
-**Примеры:**
+**Examples:**
 
 ```bash
-# Изменение размера
+# Resize
 GET /ipx/?url=https://example.com/image.jpg&w=800&h=600
 
-# Конвертация в WebP
+# Convert to WebP
 GET /ipx/?url=https://example.com/image.jpg&format=webp&quality=90
 
-# Только изменение размера (сохранение формата)
+# Resize only (keep format)
 GET /ipx/?url=https://example.com/image.png&w=500
 ```
 
-## Расширение системы
+## Extending the system
 
-### Добавление нового формата
+### Add a new format
 
-1. Добавить константу в `format.go`:
+1. Add a constant in `format.go`:
 ```go
 const FormatAVIF Format = "avif"
 ```
 
-2. Обновить `ContentType()`:
+2. Update `ContentType()`:
 ```go
 case FormatAVIF:
     return "image/avif"
 ```
 
-3. Добавить обработку в `Processor.ToBytes()` (`ipxpress.go`)
+3. Add handling in `Processor.ToBytes()` (`ipxpress.go`)
 
-### Замена системы кеширования
+### Replace the cache system
 
-Реализовать интерфейс `Cache`:
+Implement the `Cache` interface:
 ```go
 type RedisCache struct {
     client *redis.Client
@@ -312,7 +312,7 @@ func (c *RedisCache) Set(key string, entry *CacheEntry) { ... }
 func (c *RedisCache) Cleanup() { ... }
 ```
 
-Использовать в Handler:
+Use it in Handler:
 ```go
 handler := &Handler{
     cache: NewRedisCache(...),
@@ -320,57 +320,57 @@ handler := &Handler{
 }
 ```
 
-## Тестирование
+## Testing
 
-Запуск тестов:
+Run tests:
 ```bash
 go test ./pkg/ipxpress/... -v
 ```
 
-Покрытие кода:
+Coverage:
 ```bash
 go test ./pkg/ipxpress/... -cover
 ```
 
-## Мониторинг и логирование
+## Monitoring and logging
 
-### Текущие логи
-- libvips logs (уровень WARNING+)
-- HTTP запросы (через стандартный log)
+### Current logs
+- libvips logs (WARNING+ level)
+- HTTP requests (standard log)
 
-### Рекомендации для продакшена
-- Добавить structured logging (zap, zerolog)
-- Метрики Prometheus (latency, cache hit rate, error rate)
+### Production recommendations
+- Add structured logging (zap, zerolog)
+- Prometheus metrics (latency, cache hit rate, error rate)
 - Distributed tracing (OpenTelemetry)
 - Health check endpoint (`/health`)
 
-## Производительность
+## Performance
 
-### Целевые показатели
+### Targets
 - **Throughput:** 3000+ req/sec
-- **Latency:** <50ms (для кешированных), <200ms (с обработкой)
-- **Concurrency:** 256 одновременных обработок
+- **Latency:** <50ms (cached), <200ms (processed)
+- **Concurrency:** 256 concurrent operations
 
-### Оптимизации
+### Optimizations
 - Connection pooling (500 idle connections)
 - Response caching (30 sec TTL)
 - Efficient memory management (immediate cleanup)
-- Vector operations в libvips (SIMD)
+- Vector operations in libvips (SIMD)
 
-## Безопасность
+## Security
 
-### Текущие меры
-- Валидация URL (только HTTP/HTTPS)
-- Таймауты на все операции
-- Ограничение конкурентности (DoS защита)
+### Current measures
+- URL validation (HTTP/HTTPS only)
+- Timeouts for all operations
+- Concurrency limit (DoS protection)
 
-### Рекомендации
-- Rate limiting по IP
-- Белый список доменов для URL
-- Максимальный размер файла
-- Аутентификация/авторизация
+### Recommendations
+- Rate limiting by IP
+- Domain allowlist for URLs
+- Maximum file size
+- Authentication/authorization
 
-## Развертывание
+## Deployment
 
 ### Docker
 ```bash
@@ -378,18 +378,18 @@ docker build -t ipxpress .
 docker run -p 8080:8080 ipxpress
 ```
 
-### Нативная сборка
+### Native build
 ```bash
 go build -o ipxpress ./cmd/ipxpress
 ./ipxpress -addr :8080
 ```
 
-## Зависимости
+## Dependencies
 
-- **libvips:** Быстрая библиотека обработки изображений
-- **govips:** Go биндинги для libvips
-- Стандартная библиотека Go
+- **libvips:** Fast image processing library
+- **govips:** Go bindings for libvips
+- Go standard library
 
-## Лицензия
+## License
 
-См. файл LICENSE в корне проекта.
+See LICENSE in the project root.

@@ -1,134 +1,134 @@
-# Сравнение IPXpress с ipx (npm package)
+# IPXpress vs ipx (npm package)
 
-## Обзор
+## Overview
 
-Этот документ содержит детальное сравнение IPXpress с популярным npm пакетом [ipx](https://github.com/unjs/ipx) для обработки изображений.
+This document provides a detailed comparison of IPXpress and the popular npm package [ipx](https://github.com/unjs/ipx) for image processing.
 
-## Технологический стек
+## Technology stack
 
-| Аспект | IPXpress | ipx |
+| Aspect | IPXpress | ipx |
 |--------|----------|-----|
-| Язык | Go | Node.js/TypeScript |
-| Библиотека обработки | libvips (govips) | sharp (libvips) |
+| Language | Go | Node.js/TypeScript |
+| Processing library | libvips (govips) | sharp (libvips) |
 | Runtime | Native binary | Node.js runtime |
-| Deployment | Один бинарный файл | npm install + dependencies |
+| Deployment | Single binary | npm install + dependencies |
 
-## Производительность
+## Performance
 
-### Преимущества IPXpress:
+### Advantages of IPXpress:
 
-- **Меньшее использование памяти**: Go эффективнее управляет памятью
-- **Лучшая конкурентность**: Встроенные горутины vs event loop Node.js
+- **Lower memory usage**: Go manages memory more efficiently
+- **Better concurrency**: goroutines vs Node.js event loop
 - **Connection pooling**: 500 idle connections, 256 max concurrent processing
-- **Нативная компиляция**: Нет overhead от JIT компиляции
+- **Native compilation**: no JIT overhead
 
-## Поддерживаемые функции
+## Supported features
 
-### ✅ Полностью реализовано (паритет с ipx)
+### Fully implemented (parity with ipx)
 
-#### Базовые операции:
-- ✅ Resize (width, height)
-- ✅ Format conversion (JPEG, PNG, GIF, WebP, AVIF)
-- ✅ Quality control
-- ✅ HTTP/HTTPS image fetching
-- ✅ Caching
+#### Core operations:
+- Resize (width, height)
+- Format conversion (JPEG, PNG, GIF, WebP, AVIF)
+- Quality control
+- HTTP/HTTPS image fetching
+- Caching
 
-#### Параметры resize:
-- ✅ Kernel selection (nearest, cubic, mitchell, lanczos2, lanczos3)
-- ✅ Enlarge (upscaling control)
+#### Resize parameters:
+- Kernel selection (nearest, cubic, mitchell, lanczos2, lanczos3)
+- Enlarge (upscaling control)
 
-#### Операции обработки:
-- ✅ Blur (Gaussian blur)
-- ✅ Sharpen
-- ✅ Rotate (0, 90, 180, 270)
-- ✅ Flip (vertical)
-- ✅ Flop (horizontal)
-- ✅ Grayscale
+#### Processing operations:
+- Blur (Gaussian blur)
+- Sharpen
+- Rotate (0, 90, 180, 270)
+- Flip (vertical)
+- Flop (horizontal)
+- Grayscale
 
-#### Кадрирование:
-- ✅ Extract/Crop (rectangular region)
-- ✅ Extend (add borders)
+#### Cropping:
+- Extract/Crop (rectangular region)
+- Extend (add borders)
 
-#### Цветовые операции:
-- ✅ Background color
-- ✅ Negate (invert colors)
-- ✅ Normalize
-- ✅ Gamma correction
-- ✅ Modulate (HSB)
-- ✅ Flatten (remove alpha)
+#### Color operations:
+- Background color
+- Negate (invert colors)
+- Normalize
+- Gamma correction
+- Modulate (HSB)
+- Flatten (remove alpha)
 
-### Сравнительная таблица функций
+### Feature comparison table
 
-| Функция | IPXpress | ipx | Приоритет |
+| Feature | IPXpress | ipx | Priority |
 |---------|----------|-----|-----------|
-| Resize (w/h) | ✅ | ✅ | Высокий |
-| Format: JPEG, PNG, GIF, WebP | ✅ | ✅ | Высокий |
-| Format: AVIF | ✅ | ✅ | Высокий |
-| Format: HEIF/HEIC | ❌ | ✅ | Средний |
-| Format: TIFF | ❌ | ✅ | Низкий |
-| Format: SVG | ❌ | ✅ | Средний |
-| Quality control | ✅ | ✅ | Высокий |
-| Blur | ✅ | ✅ | Высокий |
-| Sharpen | ✅ | ✅ | Высокий |
-| Rotate | ✅ | ✅ | Высокий |
-| Flip/Flop | ✅ | ✅ | Средний |
-| Grayscale | ✅ | ✅ | Средний |
-| Extract/Crop | ✅ | ✅ | Высокий |
-| Trim | ❌ | ✅ | Низкий |
-| Extend | ✅ | ✅ | Низкий |
-| Kernel selection | ✅ | ✅ | Средний |
-| Fit modes | ⚠️ | ✅ | Средний |
-| Position control | ⚠️ | ✅ | Средний |
-| Background | ✅ | ✅ | Средний |
-| Negate | ✅ | ✅ | Низкий |
-| Normalize | ✅ | ✅ | Низкий |
-| Threshold | ❌ | ✅ | Низкий |
-| Tint | ❌ | ✅ | Низкий |
-| Gamma | ✅ | ✅ | Низкий |
-| Median | ❌ | ✅ | Низкий |
-| Modulate | ✅ | ✅ | Низкий |
-| Flatten | ✅ | ✅ | Низкий |
-| Enlarge | ✅ | ✅ | Средний |
-| Filesystem storage | ❌ | ✅ | Средний |
-| URL в path | ❌ | ✅ | Низкий |
-| Programmatic API | ✅ | ✅ | Высокий |
-| CLI | ✅ | ✅ | Средний |
+| Resize (w/h) | Yes | Yes | High |
+| Format: JPEG, PNG, GIF, WebP | Yes | Yes | High |
+| Format: AVIF | Yes | Yes | High |
+| Format: HEIF/HEIC | No | Yes | Medium |
+| Format: TIFF | No | Yes | Low |
+| Format: SVG | No | Yes | Medium |
+| Quality control | Yes | Yes | High |
+| Blur | Yes | Yes | High |
+| Sharpen | Yes | Yes | High |
+| Rotate | Yes | Yes | High |
+| Flip/Flop | Yes | Yes | Medium |
+| Grayscale | Yes | Yes | Medium |
+| Extract/Crop | Yes | Yes | High |
+| Trim | No | Yes | Low |
+| Extend | Yes | Yes | Low |
+| Kernel selection | Yes | Yes | Medium |
+| Fit modes | Partial | Yes | Medium |
+| Position control | Partial | Yes | Medium |
+| Background | Yes | Yes | Medium |
+| Negate | Yes | Yes | Low |
+| Normalize | Yes | Yes | Low |
+| Threshold | No | Yes | Low |
+| Tint | No | Yes | Low |
+| Gamma | Yes | Yes | Low |
+| Median | No | Yes | Low |
+| Modulate | Yes | Yes | Low |
+| Flatten | Yes | Yes | Low |
+| Enlarge | Yes | Yes | Medium |
+| Filesystem storage | No | Yes | Medium |
+| URL in path | No | Yes | Low |
+| Programmatic API | Yes | Yes | High |
+| CLI | Yes | Yes | Medium |
 
-**Легенда:**
-- ✅ Реализовано
-- ⚠️ Частично реализовано
-- ❌ Не реализовано
+**Legend:**
+- Yes = implemented
+- Partial = partially implemented
+- No = not implemented
 
-## API Сравнение
+## API comparison
 
-### ipx URL формат:
+### ipx URL format:
 ```
 /modifiers/path/to/image.jpg
 /w_200,h_100/static/image.jpg
 ```
 
-### IPXpress URL формат:
+### IPXpress URL format:
 ```
 /ipx/?url=https://example.com/image.jpg&w=200&h=100
 ```
 
-## Архитектурные преимущества IPXpress
+## Architectural advantages of IPXpress
 
-### 1. Двухстадийная обработка
-- **Stage 1**: I/O операции (fetch) - без ограничений
-- **Stage 2**: CPU операции (processing) - с семафором (256 одновременно)
+### 1. Two-stage processing
+- **Stage 1**: I/O operations (fetch) with no limits
+- **Stage 2**: CPU operations (processing) with a semaphore (256 concurrent)
 
-### 2. Эффективное кеширование
-- In-memory cache с TTL
-- Кеширование ошибок
-- MD5 ключи для уникальности
+### 2. Efficient caching
+- In-memory cache with TTL
+- Cache errors
+- MD5 keys for uniqueness
 
-### 3. Простой deployment
-- Один бинарный файл
-- Нет Node.js зависимостей
-- Меньший Docker образ
+### 3. Simple deployment
+- Single binary
+- No Node.js dependencies
+- Smaller Docker image
 
-## Примеры использования
+## Usage examples
 
 ### IPXpress
 ```bash
@@ -154,60 +154,60 @@ curl "http://localhost:3000/f_avif,q_80/https://example.com/photo.jpg"
 curl "http://localhost:3000/extract_100_100_500_500,rotate_90/https://example.com/photo.jpg"
 ```
 
-## Производительность (бенчмарки)
+## Performance (benchmarks)
 
-### Latency (среднее время обработки)
+### Latency (average processing time)
 - **IPXpress**: ~50-100ms (resize 2000x2000 -> 800x600)
-- **ipx**: ~80-150ms (те же параметры)
+- **ipx**: ~80-150ms (same parameters)
 
 ### Memory usage
-- **IPXpress**: ~50-100MB (idle), до 500MB под нагрузкой
-- **ipx**: ~100-200MB (idle), до 800MB под нагрузкой
+- **IPXpress**: ~50-100MB (idle), up to 500MB under load
+- **ipx**: ~100-200MB (idle), up to 800MB under load
 
 ### Concurrent requests
-- **IPXpress**: 256 одновременных обработок (настраиваемо)
-- **ipx**: Зависит от worker_threads
+- **IPXpress**: 256 concurrent processing operations (configurable)
+- **ipx**: depends on worker_threads
 
-## Когда использовать IPXpress
+## When to use IPXpress
 
-✅ **Рекомендуется:**
-- High-performance сценарии
-- Микросервисная архитектура
-- Когда нужен простой deployment (один binary)
-- Когда критично использование памяти
-- Cloud-native приложения
+Recommended:
+- High-performance scenarios
+- Microservice architecture
+- Need simple deployment (single binary)
+- Memory usage is critical
+- Cloud-native applications
 
-❌ **Не рекомендуется:**
-- Когда нужна обработка SVG
-- Когда нужны все экзотические форматы (HEIF, TIFF)
-- Когда нужен filesystem storage из коробки
-- Когда команда работает только с Node.js
+Not recommended:
+- Need SVG processing
+- Need all exotic formats (HEIF, TIFF)
+- Need filesystem storage out of the box
+- Team works only with Node.js
 
-## Roadmap (потенциальные улучшения)
+## Roadmap (potential improvements)
 
-### Высокий приоритет
-- [ ] Полная поддержка fit modes (contain, cover, fill, inside, outside)
-- [ ] Полная поддержка position control
+### High priority
+- [ ] Full support for fit modes (contain, cover, fill, inside, outside)
+- [ ] Full support for position control
 - [ ] HEIF/HEIC format support
 
-### Средний приоритет
+### Medium priority
 - [ ] Filesystem storage backend
 - [ ] SVG processing (rasterization)
 - [ ] Trim operation
 - [ ] Threshold, Tint, Median filters
 
-### Низкий приоритет
-- [ ] URL в path стиле (как в ipx)
+### Low priority
+- [ ] URL-in-path style (like ipx)
 - [ ] TIFF format support
 - [ ] WebSocket streaming
 - [ ] GraphQL API
 
-## Заключение
+## Conclusion
 
-**IPXpress успешно реализует большинство критически важных функций ipx** с преимуществами производительности благодаря Go и нативной компиляции.
+IPXpress implements most critical ipx features with performance advantages from Go and native compilation.
 
-**Текущее покрытие функций: ~85%**
+**Current feature coverage: ~85%**
 
-Отсутствуют в основном редко используемые функции (trim, threshold, median, tint) и экзотические форматы (HEIF, TIFF, SVG).
+Missing items are mostly rarely used functions (trim, threshold, median, tint) and exotic formats (HEIF, TIFF, SVG).
 
-Для большинства production use cases IPXpress предоставляет достаточный функционал с лучшей производительностью.
+For most production use cases, IPXpress provides sufficient functionality with better performance.

@@ -1,130 +1,130 @@
-# IPXpress - Минималистичная расширяемая библиотека обработки изображений
+# IPXpress - Minimal, Extensible Image Processing Library
 
-IPXpress - это быстрая и гибкая библиотека для обработки изображений на Go, построенная на libvips.
+IPXpress is a fast and flexible image processing library for Go, built on libvips.
 
-## Ключевые возможности
+## Key features
 
-✨ **Минималистичный API** - простое использование в любом проекте  
-🔌 **Полная расширяемость** - используйте любые функции libvips  
-🚀 **Высокая производительность** - использует libvips для быстрой обработки  
-🔄 **Кеширование** - встроенное кеширование результатов  
-🎯 **Гибкость** - используйте как библиотеку или готовый сервер  
-⚙️ **Прямой доступ** - полный доступ к ImageRef для любых операций  
+- Minimal API - easy to use in any project
+- Full extensibility - use any libvips function
+- High performance - libvips-based processing
+- Caching - built-in result caching
+- Flexibility - use as a library or as a ready server
+- Direct access - full ImageRef access for any operations
 
-## Быстрый старт
+## Quick start
 
-### Как библиотека
+### As a library
 
 ```go
 import "github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 
 func main() {
-    // Самый простой способ: дефолтная конфигурация
+    // Simplest setup: default config
     handler := ipxpress.NewHandler(nil)
     http.Handle("/img/", http.StripPrefix("/img/", handler))
     http.ListenAndServe(":8080", nil)
 }
 ```
 
-### Как самостоятельный сервер
+### As a standalone server
 
 ```bash
 go build -o ipxpress ./cmd/ipxpress
 ./ipxpress -addr :8080
 ```
 
-## Использование
+## Usage
 
-### Базовая интеграция
+### Basic integration
 
 ```go
-// Создать обработчик с настройками по умолчанию
+// Create a handler with default settings
 handler := ipxpress.NewHandler(nil)
 
-// Или с кастомной конфигурацией
+// Or with custom configuration
 config := &ipxpress.Config{
     ProcessingLimit: 10,
     CacheTTL:        5 * time.Minute,
 }
 handler := ipxpress.NewHandler(config)
 
-// Явный способ получить дефолтный конфиг
+// Explicit way to get the default config
 cfg := ipxpress.NewDefaultConfig()
 handler2 := ipxpress.NewHandler(cfg)
 
-// Добавить в ваш роутер
+// Mount in your router
 http.Handle("/images/", http.StripPrefix("/images/", handler))
 ```
 
-### Расширение функциональности
+### Extending functionality
 
-#### Добавление кастомных процессоров
+#### Adding custom processors
 
 ```go
 handler := ipxpress.NewHandler(nil)
 
-// Автоматически ориентировать изображения по EXIF
+// Auto-orient images based on EXIF
 handler.UseProcessor(ipxpress.AutoOrientProcessor())
 
-// Удалять метаданные для приватности
+// Strip metadata for privacy
 handler.UseProcessor(ipxpress.StripMetadataProcessor())
 
-// Оптимизировать для веб-доставки
+// Optimize for web delivery
 handler.UseProcessor(ipxpress.CompressionOptimizer())
 ```
 
-#### Создание своего процессора
+#### Creating your own processor
 
 ```go
 customProcessor := func(proc *ipxpress.Processor, params *ipxpress.ProcessingParams) *ipxpress.Processor {
-    // Ваша логика обработки
+    // Your processing logic
     return proc.Sharpen(1.5, 1.0, 2.0)
 }
 
 handler.UseProcessor(customProcessor)
 ```
 
-#### Добавление middleware
+#### Adding middleware
 
 ```go
 // CORS
 handler.UseMiddleware(ipxpress.CORSMiddleware([]string{"*"}))
 
-// Аутентификация
+// Authentication
 handler.UseMiddleware(ipxpress.AuthMiddleware([]string{"secret-token"}))
 
-// Логирование
+// Logging
 logger := func(format string, args ...interface{}) {
     log.Printf(format, args...)
 }
 handler.UseMiddleware(ipxpress.LoggingMiddleware(logger))
 
-// Свой middleware
+// Custom middleware
 customMiddleware := func(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // Ваша логика
+        // Your logic
         next.ServeHTTP(w, r)
     })
 }
 handler.UseMiddleware(customMiddleware)
 ```
 
-### Несколько обработчиков
+### Multiple handlers
 
 ```go
-// Публичный обработчик с ограничениями
+// Public handler with limits
 publicHandler := ipxpress.NewHandler(&ipxpress.Config{
     ProcessingLimit: 5,
 })
 publicHandler.UseMiddleware(ipxpress.RateLimitMiddleware(100))
 
-// Приватный обработчик с авторизацией
+// Private handler with auth
 privateHandler := ipxpress.NewHandler(&ipxpress.Config{
     ProcessingLimit: 20,
 })
 privateHandler.UseMiddleware(ipxpress.AuthMiddleware([]string{"admin-token"}))
 
-// Монтируем оба
+// Mount both
 http.Handle("/public/img/", http.StripPrefix("/public/img/", publicHandler))
 http.Handle("/private/img/", http.StripPrefix("/private/img/", privateHandler))
 ```
@@ -135,18 +135,18 @@ http.Handle("/private/img/", http.StripPrefix("/private/img/", privateHandler))
 GET /ipx/?url=https://example.com/image.jpg&w=800&h=600&quality=85&format=webp
 ```
 
-**Параметры:**
-- `url` (обязательный) - URL изображения для обработки
-- `w` - максимальная ширина
-- `h` - максимальная высота  
-- `quality` - качество (1-100, по умолчанию 85)
-- `format` - формат вывода (jpeg, png, gif, webp)
+**Parameters:**
+- `url` (required) - image URL to process
+- `w` - max width
+- `h` - max height
+- `quality` - quality (1-100, default 85)
+- `format` - output format (jpeg, png, gif, webp)
 
-Полная документация API: [API.md](API.md)
+Full API documentation: [API.md](API.md)
 
-## Прямая обработка изображений
+## Direct image processing
 
-Можно использовать без HTTP:
+You can use IPXpress without HTTP:
 
 ```go
 proc := ipxpress.New().
@@ -158,16 +158,16 @@ output, err := proc.ToBytes(ipxpress.FormatJPEG, 85)
 proc.Close()
 ```
 
-### Использование любых функций libvips
+### Using any libvips functions
 
-IPXpress предоставляет полный доступ к любым функциям libvips через несколько механизмов:
+IPXpress provides full access to any libvips function through several mechanisms:
 
-#### 1. Прямой доступ к ImageRef
+#### 1. Direct ImageRef access
 
 ```go
 proc := ipxpress.New().FromBytes(imageData)
 
-// Получить прямой доступ к vips.ImageRef
+// Get direct access to vips.ImageRef
 img := proc.ImageRef()
 if img != nil {
     img.Blur(2.0)
@@ -178,7 +178,7 @@ if img != nil {
 output, _ := proc.ToBytes(ipxpress.FormatJPEG, 85)
 ```
 
-#### 2. ApplyFunc для пользовательских операций
+#### 2. ApplyFunc for custom operations
 
 ```go
 proc := ipxpress.New().
@@ -193,7 +193,7 @@ proc := ipxpress.New().
 output, _ := proc.ToBytes(ipxpress.FormatJPEG, 85)
 ```
 
-#### 3. VipsOperationBuilder для цепочки операций
+#### 3. VipsOperationBuilder for operation chains
 
 ```go
 proc := ipxpress.New().FromBytes(imageData)
@@ -208,18 +208,18 @@ err := builder.
 output, _ := proc.ToBytes(ipxpress.FormatJPEG, 85)
 ```
 
-Подробно: [CUSTOM_OPERATIONS.md](CUSTOM_OPERATIONS.md)
+Details: [CUSTOM_OPERATIONS.md](CUSTOM_OPERATIONS.md)
 
-## Документация
+## Documentation
 
-- [LIBRARY_USAGE.md](LIBRARY_USAGE.md) - Детальная документация по использованию библиотеки
-- [API.md](API.md) - Полное описание API
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Архитектура проекта
-- [CUSTOM_OPERATIONS.md](CUSTOM_OPERATIONS.md) - Расширение возможностей и использование любых функций libvips
+- [LIBRARY_USAGE.md](LIBRARY_USAGE.md) - Detailed library usage
+- [API.md](API.md) - Full API description
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Project architecture
+- [CUSTOM_OPERATIONS.md](CUSTOM_OPERATIONS.md) - Extending and using any libvips functions
 
-## Примеры использования
+## Usage examples
 
-### Интеграция с Chi Router
+### Integration with Chi Router
 
 ```go
 r := chi.NewRouter()
@@ -229,7 +229,7 @@ imgHandler := ipxpress.NewHandler(nil)
 r.Mount("/img", imgHandler)
 ```
 
-### Интеграция с Gorilla Mux
+### Integration with Gorilla Mux
 
 ```go
 r := mux.NewRouter()
@@ -242,13 +242,13 @@ r.PathPrefix("/img/").Handler(http.StripPrefix("/img/", imgHandler))
 ### Production setup
 
 ```go
-// Библиотека автоматически инициализирует vips
-// Вам не нужно вызывать vips.Startup() или vips.Shutdown()
+// The library initializes vips automatically
+// You do not need to call vips.Startup() or vips.Shutdown()
 
-// Базовый вариант без настроек
+// Basic setup
 handler := ipxpress.NewHandler(nil)
 
-// Кастомные настройки при необходимости
+// Custom settings if needed
 config := ipxpress.NewDefaultConfig()
 config.ProcessingLimit = 10
 config.CacheTTL = 30 * time.Minute
@@ -259,14 +259,14 @@ handler.UseProcessor(ipxpress.CompressionOptimizer())
 handler.UseMiddleware(ipxpress.CORSMiddleware([]string{"*"}))
 ```
 
-## Требования
+## Requirements
 
 - Go 1.21+
 - libvips 8.12+
 
-**Примечание:** Библиотека автоматически инициализирует libvips при первом использовании. Вам не нужно вручную вызывать `vips.Startup()` или `vips.Shutdown()`.
+**Note:** The library automatically initializes libvips on first use. You do not need to call `vips.Startup()` or `vips.Shutdown()` manually.
 
-## Установка libvips
+## Installing libvips
 
 ### Ubuntu/Debian
 ```bash
@@ -278,7 +278,7 @@ apt-get install libvips-dev
 brew install vips
 ```
 
-## Лицензия
+## License
 
-MIT License - см. [LICENSE](LICENSE)
+MIT License - see [LICENSE](LICENSE)
 

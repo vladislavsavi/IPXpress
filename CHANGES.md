@@ -1,129 +1,128 @@
-# Изменения в IPXpress
+# IPXpress Changes
 
 ## v0.3.0 (2026-02-11)
 
-**Оптимизация управления памятью и кэшированием:**
+**Memory and caching optimization:**
 
-- **Отключение внутреннего кэша libvips**: В `DefaultVipsConfig` теперь по умолчанию отключено внутреннее кэширование libvips (`MaxCacheMem = 0`, `MaxCacheSize = 0`).
-- **Единый источник истины для кэша**: Вся ответственность за кэширование перенесена на уровень приложения (`InMemoryCache`), что устраняет дублирование данных в памяти и делает потребление ресурсов более предсказуемым.
-- **Обновление конфигурации**: Значения по умолчанию для `VipsConfig` в `DefaultVipsConfig()` изменены для отключения кэша библиотеки.
-- **Документация**: Обновлена архитектурная документация для отражения изменений в стратегии кэширования.
+- **Disable libvips internal cache**: `DefaultVipsConfig` now disables libvips caching by default (`MaxCacheMem = 0`, `MaxCacheSize = 0`).
+- **Single source of truth for caching**: all caching responsibility is moved to the application layer (`InMemoryCache`), removing duplicate memory usage and making resource consumption predictable.
+- **Config update**: default values for `VipsConfig` in `DefaultVipsConfig()` changed to disable libvips cache.
+- **Documentation**: architecture docs updated to reflect the caching strategy change.
 
-Эти изменения предотвращают ситуации, когда изображение хранилось дважды (в кэше приложения и кэше libvips), и позволяют точнее управлять использованием памяти через `CacheTTL` и `CleanupInterval`.
+These changes prevent images from being stored twice (application cache and libvips cache) and allow more precise memory usage control via `CacheTTL` and `CleanupInterval`.
 
 ## v0.2.0 (2025-12-15)
 
-**Расширение функциональности для использования любых функций libvips:**
+**Expanded functionality for using any libvips function:**
 
-- **Прямой доступ к ImageRef**: метод `ImageRef()` для получения прямого доступа к `vips.ImageRef` и использования любых функций libvips.
-- **ApplyFunc метод**: применение пользовательских функций обработки с автоматической обработкой ошибок и поддержкой цепочки операций.
-- **VipsOperationBuilder (fluent API)**: удобный интерфейс для цепочки операций с методами `Blur()`, `Sharpen()`, `Modulate()`, `Median()`, `Flatten()`, `Invert()`.
-- **CustomOperation тип**: для создания переиспользуемых пользовательских операций.
-- **Встроенные операции**: `GaussianBlurOperation()`, `EdgeDetectionOperation()`, `SepiaOperation()`, `BrightnessOperation()`, `SaturationOperation()`, `ContrastOperation()`.
-- **Документация**: новый файл `CUSTOM_OPERATIONS.md` с полными примерами.
-- **Юнит-тесты**: полное покрытие в `extensions_test.go`.
+- **Direct ImageRef access**: `ImageRef()` returns a `vips.ImageRef` so any libvips function can be used.
+- **ApplyFunc method**: apply custom processing functions with automatic error handling and chaining.
+- **VipsOperationBuilder (fluent API)**: chain operations with `Blur()`, `Sharpen()`, `Modulate()`, `Median()`, `Flatten()`, `Invert()`.
+- **CustomOperation type**: reusable custom operations.
+- **Built-in operations**: `GaussianBlurOperation()`, `EdgeDetectionOperation()`, `SepiaOperation()`, `BrightnessOperation()`, `SaturationOperation()`, `ContrastOperation()`.
+- **Documentation**: new `CUSTOM_OPERATIONS.md` with full examples.
+- **Unit tests**: full coverage in `extensions_test.go`.
 
-Примеры использования:
+Usage examples:
 ```go
-// Прямой доступ: img := proc.ImageRef()
+// Direct access: img := proc.ImageRef()
 // ApplyFunc: proc.ApplyFunc(func(img *vips.ImageRef) error { ... })
 // Builder: builder.Blur(2.0).Sharpen(1.5, 0.5, 1.0)
 ```
 
 ## v0.1.0 (2025-12-14)
 
-Основные улучшения и фиксы:
+Key improvements and fixes:
 
-- **Дефолтная конфигурация**: `NewDefaultConfig()` и автоприменение при `NewHandler(nil)`. Библиотечным клиентам не нужно настраивать вручную.
-- **Исправление внутреннего кеша**: проставление `Timestamp` в `InMemoryCache.Set` — стабильный TTL, повторные запросы бьют в кеш.
-- **HTTP кеширование**: конфигурируемые заголовки `Cache-Control` (`ClientMaxAge`, `SMaxAge`) и поддержка `ETag`/`If-None-Match` (включено по умолчанию).
-- **Короткие алиасы параметров**: совместимость с ipx v2 (`w,h,f,q,s,b,pos`), плюс парсинг `s=WxH`.
-- **Заголовки контента**: корректный `Content-Type` и принудительный `Content-Disposition: inline` для отображения, без скачивания.
-- **Тюнинг энкодеров**: WebP `ReductionEffort=4` (быстро), AVIF `Speed=6` — баланс скорости и сжатия; отсутствие непредвиденных даунгрейдов формата.
+- **Default configuration**: `NewDefaultConfig()` and auto-apply for `NewHandler(nil)`. Library users do not need to set it manually.
+- **Internal cache fix**: `Timestamp` is set in `InMemoryCache.Set` for stable TTL and consistent cache hits.
+- **HTTP caching**: configurable `Cache-Control` headers (`ClientMaxAge`, `SMaxAge`) and `ETag`/`If-None-Match` support (enabled by default).
+- **Short parameter aliases**: compatibility with ipx v2 (`w,h,f,q,s,b,pos`), plus parsing `s=WxH`.
+- **Content headers**: correct `Content-Type` and forced `Content-Disposition: inline` for display without download.
+- **Encoder tuning**: WebP `ReductionEffort=4` (fast), AVIF `Speed=6` for speed/compression balance; no unexpected format downgrades.
 
-Стабильность:
+Stability:
 
-- Все тесты проходят: `go test ./...` OK.
-- Сравнение с внешним ipx показало одинаковые размеры выходных файлов, локально быстрее.
+- All tests pass: `go test ./...` OK.
+- Comparison with external ipx showed matching output sizes and faster local performance.
 
-Конфигурация (новые поля):
+Configuration (new fields):
 
-- `ClientMaxAge` — `Cache-Control: max-age` (секунды), по умолчанию `604800`.
-- `SMaxAge` — `Cache-Control: s-maxage` для CDN, по умолчанию `0` (выключено).
-- `EnableETag` — включение `ETag` и `304 Not Modified`, по умолчанию `true`.
+- `ClientMaxAge` - `Cache-Control: max-age` (seconds), default `604800`.
+- `SMaxAge` - `Cache-Control: s-maxage` for CDNs, default `0` (disabled).
+- `EnableETag` - enables `ETag` and `304 Not Modified`, default `true`.
 
-Пример:
+Example:
 
 ```go
 cfg := ipxpress.NewDefaultConfig()
-cfg.ClientMaxAge = 3600 // 1 час
-cfg.SMaxAge = 3600      // 1 час для CDN
+cfg.ClientMaxAge = 3600 // 1 hour
+cfg.SMaxAge = 3600      // 1 hour for CDN
 cfg.CacheTTL = 10 * time.Minute
 cfg.EnableETag = true
 handler := ipxpress.NewHandler(cfg)
 ```
 
-Документация:
+Documentation:
 
-- Обновлены `README.md`, `README.library.md`, `API.md` — разделы про кеширование и дефолтные настройки.
+- Updated `README.md`, `README.library.md`, `API.md` - caching and default settings sections.
 
-### 1. Расширяемая архитектура обработчика
+### 1. Extensible handler architecture
 
+**New types:**
+- `ProcessorFunc` - function for custom image processing
+- `MiddlewareFunc` - function for adding middleware
 
-**Добавлены новые типы:**
-- `ProcessorFunc` - функция для кастомной обработки изображений
-- `MiddlewareFunc` - функция для добавления middleware
-
-**Новые методы Handler:**
+**New Handler methods:**
 ```go
-handler.UseProcessor(processorFunc)  // Добавить кастомный процессор
-handler.UseMiddleware(middleware)     // Добавить middleware
+handler.UseProcessor(processorFunc)  // Add custom processor
+handler.UseMiddleware(middleware)     // Add middleware
 ```
 
-### 2. Встроенные процессоры (`pkg/ipxpress/examples.go`)
+### 2. Built-in processors (`pkg/ipxpress/examples.go`)
 
-- `AutoOrientProcessor()` - автоматическая ориентация по EXIF
-- `StripMetadataProcessor()` - удаление метаданных для приватности
-- `CompressionOptimizer()` - оптимизация сжатия для веб
+- `AutoOrientProcessor()` - auto-orient via EXIF
+- `StripMetadataProcessor()` - remove metadata for privacy
+- `CompressionOptimizer()` - optimize compression for web
 
-### 3. Встроенные middleware
+### 3. Built-in middleware
 
-- `CORSMiddleware(origins)` - CORS заголовки
-- `LoggingMiddleware(logger)` - логирование запросов
-- `RateLimitMiddleware(maxRequests)` - ограничение частоты запросов
-- `AuthMiddleware(tokens)` - аутентификация по токенам
+- `CORSMiddleware(origins)` - CORS headers
+- `LoggingMiddleware(logger)` - request logging
+- `RateLimitMiddleware(maxRequests)` - request rate limiting
+- `AuthMiddleware(tokens)` - token authentication
 
-### 4. Документация
+### 4. Documentation
 
-**Новые файлы:**
-- `LIBRARY_USAGE.md` - полная документация по использованию библиотеки
-- `README.library.md` - краткий README для библиотеки
-- `examples/library_usage/main.go` - рабочий пример
+**New files:**
+- `LIBRARY_USAGE.md` - full library usage documentation
+- `README.library.md` - short library README
+- `examples/library_usage/main.go` - working example
 
-## Примеры использования
+## Usage examples
 
-### Простая интеграция
+### Simple integration
 
 ```go
 handler := ipxpress.NewHandler(nil)
 http.Handle("/img/", http.StripPrefix("/img/", handler))
 ```
 
-### С кастомными процессорами
+### With custom processors
 
 ```go
 handler := ipxpress.NewHandler(nil)
 handler.UseProcessor(ipxpress.AutoOrientProcessor())
 handler.UseProcessor(ipxpress.StripMetadataProcessor())
 
-// Свой процессор
+// Custom processor
 customProc := func(proc *ipxpress.Processor, params *ipxpress.ProcessingParams) *ipxpress.Processor {
     return proc.Sharpen(1.5, 1.0, 2.0)
 }
 handler.UseProcessor(customProc)
 ```
 
-### С middleware
+### With middleware
 
 ```go
 handler := ipxpress.NewHandler(nil)
@@ -131,14 +130,14 @@ handler.UseMiddleware(ipxpress.CORSMiddleware([]string{"*"}))
 handler.UseMiddleware(ipxpress.AuthMiddleware([]string{"secret-token"}))
 ```
 
-### Несколько обработчиков
+### Multiple handlers
 
 ```go
-// Публичный с ограничениями
+// Public handler with limits
 publicHandler := ipxpress.NewHandler(config1)
 publicHandler.UseMiddleware(ipxpress.RateLimitMiddleware(100))
 
-// Приватный с авторизацией
+// Private handler with auth
 privateHandler := ipxpress.NewHandler(config2)
 privateHandler.UseMiddleware(ipxpress.AuthMiddleware(tokens))
 
@@ -146,28 +145,28 @@ http.Handle("/public/img/", http.StripPrefix("/public/img/", publicHandler))
 http.Handle("/private/img/", http.StripPrefix("/private/img/", privateHandler))
 ```
 
-## Архитектурные улучшения
+## Architectural improvements
 
-### До:
-- Жесткая структура без возможности расширения
-- Только встроенные трансформации
-- Нет поддержки middleware
-- Один обработчик на весь сервер
+### Before:
+- Rigid structure without extensibility
+- Only built-in transformations
+- No middleware support
+- Single handler for the entire server
 
-### После:
-- Гибкая архитектура с ProcessorFunc и MiddlewareFunc
-- Можно добавлять кастомные процессоры в pipeline
-- Поддержка middleware для HTTP уровня
-- Можно создавать несколько обработчиков с разными настройками
-- Легко интегрируется в существующие проекты
+### After:
+- Flexible architecture with ProcessorFunc and MiddlewareFunc
+- Add custom processors to the pipeline
+- Middleware support at the HTTP layer
+- Multiple handlers with different settings
+- Easy integration into existing projects
 
-## Обратная совместимость
+## Backward compatibility
 
-✅ Все существующие функции работают без изменений  
-✅ Старый код продолжит работать  
-✅ Новые функции полностью опциональны
+- All existing functions work without changes
+- Old code continues to work
+- New features are fully optional
 
-## Использование в других проектах
+## Usage in other projects
 
 ```bash
 go get github.com/vladislavsavi/ipxpress/pkg/ipxpress
@@ -177,25 +176,25 @@ go get github.com/vladislavsavi/ipxpress/pkg/ipxpress
 import "github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 
 handler := ipxpress.NewHandler(nil)
-// Добавляем в свой роутер
+// Mount in your router
 ```
 
-## Тестирование
+## Testing
 
 ```bash
-# Компиляция
+# Build
 go build ./...
 
-# Запуск примера
+# Run example
 go run examples/library_usage/main.go
 
-# Тест API
+# Test API
 curl "http://localhost:8080/img/?url=https://example.com/image.jpg&w=800"
 ```
 
-## Следующие шаги
+## Next steps
 
-1. Добавить `s-maxage` и `ETag` настройки в CLI флаги.
-2. Встроить метрики (профилирование, p50/p95 времени обработки).
-3. Конфигурируемый стор кэша (например, Redis) для горизонтального масштабирования.
-4. Документировать рекомендации по качеству и производительности.
+1. Add `s-maxage` and `ETag` settings to CLI flags.
+2. Add metrics (profiling, p50/p95 processing time).
+3. Configurable cache store (for example, Redis) for horizontal scaling.
+4. Document quality and performance recommendations.

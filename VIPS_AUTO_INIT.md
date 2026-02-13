@@ -1,31 +1,31 @@
-# Автоматическая инициализация libvips
+# Automatic libvips Initialization
 
-## Изменения
+## Changes
 
-Библиотека IPXpress теперь автоматически инициализирует libvips при первом использовании. Пользователям больше не нужно вручную вызывать `vips.Startup()` и `vips.Shutdown()`.
+IPXpress now initializes libvips automatically on first use. Users no longer need to call `vips.Startup()` and `vips.Shutdown()` manually.
 
-## Что было изменено
+## What changed
 
-### 1. Автоматическая инициализация
+### 1. Automatic initialization
 
-Добавлена функция `initVips()` с использованием `sync.Once`, которая автоматически вызывается при:
-- Создании нового обработчика через `NewHandler()`
-- Создании нового процессора через `New()`
+The `initVips()` function was added using `sync.Once`, and is called automatically when:
+- Creating a new handler via `NewHandler()`
+- Creating a new processor via `New()`
 
-### 2. Настройка по умолчанию
+### 2. Default configuration
 
-При автоматической инициализации используются следующие настройки:
+Automatic initialization uses the following settings:
 ```go
 vips.Config{
-    ConcurrencyLevel: 0,    // Использовать все доступные ядра CPU
-    MaxCacheMem:      2048, // 2GB кеш памяти
-    MaxCacheSize:     5000, // До 5000 файлов в кеше
+    ConcurrencyLevel: 0,    // Use all available CPU cores
+    MaxCacheMem:      2048, // 2GB cache memory
+    MaxCacheSize:     5000, // Up to 5000 files in cache
 }
 ```
 
-### 3. Кастомная настройка (опционально)
+### 3. Custom configuration (optional)
 
-Для production окружений с высокими нагрузками добавлена функция `InitVipsWithConfig()`:
+For production environments with high load, use `InitVipsWithConfig()`:
 
 ```go
 ipxpress.InitVipsWithConfig(&vips.Config{
@@ -36,11 +36,11 @@ ipxpress.InitVipsWithConfig(&vips.Config{
 }, vips.LogLevelWarning)
 ```
 
-**Важно:** Эту функцию нужно вызвать **до** создания любых обработчиков или процессоров.
+**Important:** Call this **before** creating any handlers or processors.
 
-## Примеры использования
+## Usage examples
 
-### Простое использование (рекомендуется)
+### Simple usage (recommended)
 
 ```go
 package main
@@ -51,14 +51,14 @@ import (
 )
 
 func main() {
-    // vips инициализируется автоматически
+    // vips initializes automatically
     handler := ipxpress.NewHandler(nil)
     http.Handle("/img/", http.StripPrefix("/img/", handler))
     http.ListenAndServe(":8080", nil)
 }
 ```
 
-### С кастомными настройками vips
+### With custom vips settings
 
 ```go
 package main
@@ -70,63 +70,63 @@ import (
 )
 
 func main() {
-    // Опционально: настройка vips перед использованием
+    // Optional: configure vips before use
     ipxpress.InitVipsWithConfig(&vips.Config{
         ConcurrencyLevel: 0,
         MaxCacheMem:      4096,
         MaxCacheSize:     10000,
     }, vips.LogLevelWarning)
-    
+
     handler := ipxpress.NewHandler(nil)
     http.Handle("/img/", http.StripPrefix("/img/", handler))
     http.ListenAndServe(":8080", nil)
 }
 ```
 
-### Прямая обработка изображений
+### Direct image processing
 
 ```go
 func processImage(data []byte) ([]byte, error) {
-    // vips инициализируется автоматически при первом вызове
+    // vips initializes automatically on first call
     proc := ipxpress.New().
         FromBytes(data).
         Resize(800, 600)
-    
+
     if err := proc.Err(); err != nil {
         return nil, err
     }
-    
+
     result, err := proc.ToBytes(ipxpress.FormatJpeg, 85)
     proc.Close()
-    
+
     return result, err
 }
 ```
 
-## Обратная совместимость
+## Backward compatibility
 
-Изменения полностью обратно совместимы. Если вы явно вызываете `vips.Startup()` в своем коде, это будет работать как и раньше - автоматическая инициализация определит, что vips уже запущен, и не будет инициализировать его повторно.
+These changes are fully backward compatible. If you explicitly call `vips.Startup()` in your code, it will keep working. The automatic initialization detects that vips is already running and will not initialize it again.
 
-## Обновленные файлы
+## Updated files
 
-1. `pkg/ipxpress/ipxpress.go` - добавлена автоматическая инициализация
-2. `pkg/ipxpress/server.go` - NewHandler теперь вызывает initVips()
-3. `cmd/ipxpress/main.go` - обновлен для использования InitVipsWithConfig()
-4. `examples/library_usage/main.go` - удалена ручная инициализация vips
-5. `pkg/ipxpress/ipxpress_test.go` - удалена ручная инициализация из тестов
-6. Вся документация (README.md, LIBRARY_USAGE.md, и др.) - обновлена
+1. `pkg/ipxpress/ipxpress.go` - added automatic initialization
+2. `pkg/ipxpress/server.go` - `NewHandler` now calls `initVips()`
+3. `cmd/ipxpress/main.go` - updated to use `InitVipsWithConfig()`
+4. `examples/library_usage/main.go` - removed manual vips init
+5. `pkg/ipxpress/ipxpress_test.go` - removed manual init from tests
+6. Documentation (README.md, LIBRARY_USAGE.md, etc.) - updated
 
-## Преимущества
+## Benefits
 
-✅ Проще для новых пользователей - не нужно разбираться с libvips  
-✅ Меньше boilerplate кода  
-✅ Невозможно забыть инициализировать vips  
-✅ Безопасная инициализация с использованием sync.Once  
-✅ Возможность кастомной настройки для production  
+- Easier for new users - no need to learn libvips init details
+- Less boilerplate code
+- Impossible to forget vips initialization
+- Safe init via `sync.Once`
+- Custom configuration for production
 
-## Требования
+## Requirements
 
-Библиотека libvips по-прежнему должна быть установлена в системе:
+libvips must still be installed on the system:
 
 **Ubuntu/Debian:**
 ```bash
@@ -138,4 +138,4 @@ apt-get install libvips-dev
 brew install vips
 ```
 
-См. [govips prerequisites](https://github.com/davidbyttow/govips#prerequisites) для других платформ.
+See [govips prerequisites](https://github.com/davidbyttow/govips#prerequisites) for other platforms.
