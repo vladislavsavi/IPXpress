@@ -2,7 +2,10 @@ module github.com/vladislavsavi/ipxpress
 
 go 1.24.0
 
-require github.com/davidbyttow/govips/v2 v2.15.0
+require (
+	github.com/davidbyttow/govips/v2 v2.15.0
+	github.com/hashicorp/golang-lru/v2 v2.0.7
+)
 
 require (
 	golang.org/x/image v0.34.0 // indirect

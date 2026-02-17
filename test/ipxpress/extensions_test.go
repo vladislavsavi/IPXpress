@@ -1,14 +1,15 @@
-package ipxpress
+package ipxpress_test
 
 import (
 	"testing"
 
 	"github.com/davidbyttow/govips/v2/vips"
+	"github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 )
 
 // TestImageRefAccess verifies direct ImageRef access works
 func TestImageRefAccess(t *testing.T) {
-	proc := New()
+	proc := ipxpress.New()
 
 	imgRef := proc.ImageRef()
 	if imgRef != nil {
@@ -21,7 +22,7 @@ func TestImageRefAccess(t *testing.T) {
 
 // TestApplyFunc verifies ApplyFunc works with proper error handling
 func TestApplyFunc(t *testing.T) {
-	proc := New()
+	proc := ipxpress.New()
 
 	// Test with nil function
 	result := proc.ApplyFunc(nil)
@@ -30,7 +31,7 @@ func TestApplyFunc(t *testing.T) {
 	}
 
 	// Test with no image
-	proc2 := New()
+	proc2 := ipxpress.New()
 	result2 := proc2.ApplyFunc(func(img *vips.ImageRef) error {
 		return nil
 	})
@@ -41,7 +42,7 @@ func TestApplyFunc(t *testing.T) {
 
 // TestApplyCustom verifies custom operations work
 func TestApplyCustom(t *testing.T) {
-	proc := New()
+	proc := ipxpress.New()
 
 	// Test with nil operation
 	result := proc.ApplyCustom(nil, nil)
@@ -52,8 +53,8 @@ func TestApplyCustom(t *testing.T) {
 
 // TestVipsOperationBuilder verifies builder pattern works
 func TestVipsOperationBuilder(t *testing.T) {
-	proc := New()
-	builder := NewVipsOperationBuilder(proc)
+	proc := ipxpress.New()
+	builder := ipxpress.NewVipsOperationBuilder(proc)
 
 	// Should handle nil image gracefully
 	err := builder.
@@ -67,8 +68,8 @@ func TestVipsOperationBuilder(t *testing.T) {
 
 // TestBuilderChaining verifies method chaining works
 func TestBuilderChaining(t *testing.T) {
-	proc := New()
-	builder := NewVipsOperationBuilder(proc)
+	proc := ipxpress.New()
+	builder := ipxpress.NewVipsOperationBuilder(proc)
 
 	// Should be able to chain methods
 	result := builder.
@@ -86,13 +87,13 @@ func TestBuilderChaining(t *testing.T) {
 func TestPredefinedOperations(t *testing.T) {
 	ops := []struct {
 		name string
-		op   CustomOperation
+		op   ipxpress.CustomOperation
 	}{
-		{"GaussianBlur", GaussianBlurOperation(2.0)},
-		{"Sepia", SepiaOperation()},
-		{"Brightness", BrightnessOperation(1.1)},
-		{"Saturation", SaturationOperation(1.2)},
-		{"Contrast", ContrastOperation(1.1)},
+		{"GaussianBlur", ipxpress.GaussianBlurOperation(2.0)},
+		{"Sepia", ipxpress.SepiaOperation()},
+		{"Brightness", ipxpress.BrightnessOperation(1.1)},
+		{"Saturation", ipxpress.SaturationOperation(1.2)},
+		{"Contrast", ipxpress.ContrastOperation(1.1)},
 	}
 
 	for _, tt := range ops {

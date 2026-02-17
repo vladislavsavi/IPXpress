@@ -1,4 +1,4 @@
-package ipxpress
+package ipxpress_test
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"image/color"
 	"image/png"
 	"testing"
+
+	"github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 )
 
 // No need to manually initialize vips - it's done automatically
@@ -25,7 +27,7 @@ func TestResizePreservesAspect(t *testing.T) {
 		t.Fatalf("encode: %v", err)
 	}
 
-	proc := New().FromBytes(buf.Bytes()).Resize(50, 0) // constrain width
+	proc := ipxpress.New().FromBytes(buf.Bytes()).Resize(50, 0) // constrain width
 	defer proc.Close()
 
 	if err := proc.Err(); err != nil {

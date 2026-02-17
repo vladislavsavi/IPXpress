@@ -1,4 +1,4 @@
-package ipxpress
+package ipxpress_test
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/davidbyttow/govips/v2/vips"
+	"github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 )
 
 // TestBlurOperation tests the Blur method
@@ -15,7 +16,7 @@ func TestBlurOperation(t *testing.T) {
 	// Create a simple test image
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Blur(3.0)
 
 	if proc.Err() != nil {
@@ -29,7 +30,7 @@ func TestBlurOperation(t *testing.T) {
 func TestSharpenOperation(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Sharpen(1.5, 1.0, 2.0)
 
 	if proc.Err() != nil {
@@ -43,7 +44,7 @@ func TestSharpenOperation(t *testing.T) {
 func TestRotateOperation(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Rotate(vips.Angle90)
 
 	if proc.Err() != nil {
@@ -57,7 +58,7 @@ func TestRotateOperation(t *testing.T) {
 func TestFlipOperation(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Flip()
 
 	if proc.Err() != nil {
@@ -71,7 +72,7 @@ func TestFlipOperation(t *testing.T) {
 func TestFlopOperation(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Flop()
 
 	if proc.Err() != nil {
@@ -85,7 +86,7 @@ func TestFlopOperation(t *testing.T) {
 func TestGrayscaleOperation(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Grayscale()
 
 	if proc.Err() != nil {
@@ -99,7 +100,7 @@ func TestGrayscaleOperation(t *testing.T) {
 func TestExtractOperation(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Extract(10, 10, 50, 50)
 
 	if proc.Err() != nil {
@@ -113,7 +114,7 @@ func TestExtractOperation(t *testing.T) {
 func TestNegateOperation(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Negate()
 
 	if proc.Err() != nil {
@@ -127,7 +128,7 @@ func TestNegateOperation(t *testing.T) {
 func TestGammaOperation(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Gamma(2.2)
 
 	if proc.Err() != nil {
@@ -141,7 +142,7 @@ func TestGammaOperation(t *testing.T) {
 func TestModulateOperation(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.Modulate(1.2, 0.8, 90.0)
 
 	if proc.Err() != nil {
@@ -155,7 +156,7 @@ func TestModulateOperation(t *testing.T) {
 func TestChainedOperations(t *testing.T) {
 	img := createTestImage(200, 200)
 
-	proc := New().
+	proc := ipxpress.New().
 		FromBytes(img).
 		Resize(100, 100).
 		Blur(2.0).
@@ -166,7 +167,7 @@ func TestChainedOperations(t *testing.T) {
 		t.Errorf("Chained operations failed: %v", proc.Err())
 	}
 
-	output, err := proc.ToBytes(FormatJPEG, 85)
+	output, err := proc.ToBytes(ipxpress.FormatJPEG, 85)
 	proc.Close()
 
 	if err != nil {
@@ -195,7 +196,7 @@ func TestResizeWithOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			proc := New().FromBytes(img)
+			proc := ipxpress.New().FromBytes(img)
 			proc.ResizeWithOptions(200, 200, tt.kernel, tt.enlarge)
 
 			if proc.Err() != nil {
@@ -213,7 +214,7 @@ func TestNoUpscaleEnsured(t *testing.T) {
 	img := createTestImage(100, 100)
 
 	// Request a larger size but with enlarge=false
-	proc := New().FromBytes(img)
+	proc := ipxpress.New().FromBytes(img)
 	proc.ResizeWithOptions(300, 300, vips.KernelLanczos3, false)
 
 	if err := proc.Err(); err != nil {
@@ -221,7 +222,7 @@ func TestNoUpscaleEnsured(t *testing.T) {
 	}
 
 	// Encode to PNG and check dimensions
-	out, err := proc.ToBytes(FormatPNG, 0)
+	out, err := proc.ToBytes(ipxpress.FormatPNG, 0)
 	proc.Close()
 	if err != nil {
 		t.Fatalf("encode: %v", err)
@@ -243,8 +244,8 @@ func TestNoUpscaleEnsured(t *testing.T) {
 func TestAVIFFormat(t *testing.T) {
 	img := createTestImage(100, 100)
 
-	proc := New().FromBytes(img)
-	output, err := proc.ToBytes(FormatAVIF, 85)
+	proc := ipxpress.New().FromBytes(img)
+	output, err := proc.ToBytes(ipxpress.FormatAVIF, 85)
 	proc.Close()
 
 	if err != nil {
@@ -267,19 +268,19 @@ func TestAVIFFormat(t *testing.T) {
 // TestFormatDetection tests format detection for all supported formats
 func TestFormatDetection(t *testing.T) {
 	tests := []struct {
-		format   Format
-		expected Format
+		format   ipxpress.Format
+		expected ipxpress.Format
 	}{
-		{FormatJPEG, FormatJPEG},
-		{FormatPNG, FormatPNG},
-		{FormatWebP, FormatWebP},
-		{FormatGIF, FormatGIF},
+		{ipxpress.FormatJPEG, ipxpress.FormatJPEG},
+		{ipxpress.FormatPNG, ipxpress.FormatPNG},
+		{ipxpress.FormatWebP, ipxpress.FormatWebP},
+		{ipxpress.FormatGIF, ipxpress.FormatGIF},
 	}
 
 	for _, tt := range tests {
 		t.Run(string(tt.format), func(t *testing.T) {
 			img := createTestImage(50, 50)
-			proc := New().FromBytes(img)
+			proc := ipxpress.New().FromBytes(img)
 
 			output, err := proc.ToBytes(tt.format, 85)
 			proc.Close()
@@ -288,7 +289,7 @@ func TestFormatDetection(t *testing.T) {
 				t.Fatalf("Failed to encode as %s: %v", tt.format, err)
 			}
 
-			detected := DetectFormat(output)
+			detected := ipxpress.DetectFormat(output)
 			if detected != tt.expected {
 				t.Errorf("Format detection mismatch: got %s, want %s", detected, tt.expected)
 			}
