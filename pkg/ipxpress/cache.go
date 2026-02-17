@@ -3,16 +3,10 @@ package ipxpress
 import (
 	"crypto/md5"
 	"fmt"
-	"sync"
 	"time"
-)
 
-// Cache defines the interface for response caching.
-type Cache interface {
-	Get(key string) (*CacheEntry, bool)
-	Set(key string, entry *CacheEntry)
-	Cleanup()
-}
+	"github.com/hashicorp/golang-lru/v2/expirable"
+)
 
 // CacheEntry represents a cached response.
 type CacheEntry struct {
@@ -23,69 +17,39 @@ type CacheEntry struct {
 	Timestamp   time.Time
 }
 
-// InMemoryCache is a simple in-memory cache implementation with TTL.
+// InMemoryCache is an in-memory cache implementation backed by golang-lru with expirable TTL support.
 type InMemoryCache struct {
-	mu      sync.RWMutex
-	entries map[string]*CacheEntry
-	ttl     time.Duration
+	lru *expirable.LRU[string, *CacheEntry]
 }
 
-// NewInMemoryCache creates a new in-memory cache with the given TTL.
-func NewInMemoryCache(ttl time.Duration) *InMemoryCache {
+// NewInMemoryCache creates a new in-memory cache with the given TTL and capacity using golang-lru expirable.
+// Entries are automatically evicted when they expire or when the cache reaches capacity (LRU eviction).
+func NewInMemoryCache(ttl time.Duration, capacity int) *InMemoryCache {
+	if capacity <= 0 {
+		capacity = 10000 // Fallback to default if invalid capacity is provided
+	}
+	cache := expirable.NewLRU[string, *CacheEntry](capacity, nil, ttl)
 	return &InMemoryCache{
-		entries: make(map[string]*CacheEntry),
-		ttl:     ttl,
+		lru: cache,
 	}
 }
 
 // Get retrieves a cache entry by key. Returns the entry and true if found and not expired.
+// The expirable cache automatically removes expired entries.
 func (c *InMemoryCache) Get(key string) (*CacheEntry, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	entry, exists := c.entries[key]
+	entry, exists := c.lru.Get(key)
 	if !exists {
 		return nil, false
 	}
-
-	// Check if expired
-	if time.Since(entry.Timestamp) > c.ttl {
-		return nil, false
-	}
-
 	return entry, true
 }
 
 // Set stores a cache entry with the given key.
+// The entry will be automatically removed after the TTL expires.
 func (c *InMemoryCache) Set(key string, entry *CacheEntry) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	// Stamp the entry time so TTL can be enforced correctly
+	// Stamp the entry time for reference (not used for expiration)
 	entry.Timestamp = time.Now()
-	c.entries[key] = entry
-}
-
-// Cleanup removes expired entries from the cache.
-func (c *InMemoryCache) Cleanup() {
-	c.mu.RLock()
-	now := time.Now()
-	keysToDelete := make([]string, 0)
-
-	for key, entry := range c.entries {
-		if now.Sub(entry.Timestamp) > c.ttl {
-			keysToDelete = append(keysToDelete, key)
-		}
-	}
-	c.mu.RUnlock()
-
-	// Only lock for writing if there are keys to delete
-	if len(keysToDelete) > 0 {
-		c.mu.Lock()
-		for _, key := range keysToDelete {
-			delete(c.entries, key)
-		}
-		c.mu.Unlock()
-	}
+	c.lru.Add(key, entry)
 }
 
 // GenerateCacheKey generates a cache key from request parameters.

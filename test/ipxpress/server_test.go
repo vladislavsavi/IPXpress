@@ -1,4 +1,4 @@
-package ipxpress
+package ipxpress_test
 
 import (
 	"image"
@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 )
 
 func TestServerResize(t *testing.T) {
@@ -26,7 +28,7 @@ func TestServerResize(t *testing.T) {
 
 	// Create the ipxpress server
 	mux := http.NewServeMux()
-	mux.Handle("/ipx/", http.StripPrefix("/ipx/", Server()))
+	mux.Handle("/ipx/", http.StripPrefix("/ipx/", ipxpress.Server()))
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
@@ -68,7 +70,7 @@ func TestServerDefaultsWithNilConfig(t *testing.T) {
 	defer imgServer.Close()
 
 	// Ensure NewHandler(nil) uses default config without requiring settings
-	handler := NewHandler(nil)
+	handler := ipxpress.NewHandler(nil)
 
 	mux := http.NewServeMux()
 	mux.Handle("/ipx/", http.StripPrefix("/ipx/", handler))

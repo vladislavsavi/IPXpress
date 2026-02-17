@@ -1,8 +1,10 @@
-package ipxpress
+package ipxpress_test
 
 import (
 	"net/http"
 	"testing"
+
+	"github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 )
 
 // TestShortParameterAliases tests that short parameter names work correctly
@@ -10,12 +12,12 @@ func TestShortParameterAliases(t *testing.T) {
 	tests := []struct {
 		name     string
 		query    string
-		expected ProcessingParams
+		expected ipxpress.ProcessingParams
 	}{
 		{
 			name:  "Short width parameter",
 			query: "?url=https://example.com/test.jpg&w=800",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:     "https://example.com/test.jpg",
 				Width:   800,
 				Quality: 85,
@@ -24,7 +26,7 @@ func TestShortParameterAliases(t *testing.T) {
 		{
 			name:  "Short height parameter",
 			query: "?url=https://example.com/test.jpg&h=600",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:     "https://example.com/test.jpg",
 				Height:  600,
 				Quality: 85,
@@ -33,16 +35,16 @@ func TestShortParameterAliases(t *testing.T) {
 		{
 			name:  "Short format parameter",
 			query: "?url=https://example.com/test.jpg&f=webp",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:     "https://example.com/test.jpg",
-				Format:  FormatWebP,
+				Format:  ipxpress.FormatWebP,
 				Quality: 85,
 			},
 		},
 		{
 			name:  "Short quality parameter",
 			query: "?url=https://example.com/test.jpg&q=90",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:     "https://example.com/test.jpg",
 				Quality: 90,
 			},
@@ -50,7 +52,7 @@ func TestShortParameterAliases(t *testing.T) {
 		{
 			name:  "Short background parameter",
 			query: "?url=https://example.com/test.jpg&b=ff0000",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:        "https://example.com/test.jpg",
 				Background: "#ff0000",
 				Quality:    85,
@@ -59,7 +61,7 @@ func TestShortParameterAliases(t *testing.T) {
 		{
 			name:  "Short position parameter",
 			query: "?url=https://example.com/test.jpg&pos=center",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:      "https://example.com/test.jpg",
 				Position: "center",
 				Quality:  85,
@@ -68,7 +70,7 @@ func TestShortParameterAliases(t *testing.T) {
 		{
 			name:  "Resize parameter (s)",
 			query: "?url=https://example.com/test.jpg&s=800x600",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:     "https://example.com/test.jpg",
 				Width:   800,
 				Height:  600,
@@ -78,29 +80,29 @@ func TestShortParameterAliases(t *testing.T) {
 		{
 			name:  "Long parameters",
 			query: "?url=https://example.com/test.jpg&width=1200&height=800&format=png&quality=95",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:     "https://example.com/test.jpg",
 				Width:   1200,
 				Height:  800,
-				Format:  FormatPNG,
+				Format:  ipxpress.FormatPNG,
 				Quality: 95,
 			},
 		},
 		{
 			name:  "Mixed short and long parameters",
 			query: "?url=https://example.com/test.jpg&w=1000&height=500&f=jpeg&quality=80",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:     "https://example.com/test.jpg",
 				Width:   1000,
 				Height:  500,
-				Format:  FormatJPEG,
+				Format:  ipxpress.FormatJPEG,
 				Quality: 80,
 			},
 		},
 		{
 			name:  "Short parameters override resize",
 			query: "?url=https://example.com/test.jpg&s=400x300&w=800",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:     "https://example.com/test.jpg",
 				Width:   800,
 				Height:  300,
@@ -110,11 +112,11 @@ func TestShortParameterAliases(t *testing.T) {
 		{
 			name:  "All short parameters combined",
 			query: "?url=https://example.com/test.jpg&w=1000&h=600&f=webp&q=85&b=ffffff&pos=top",
-			expected: ProcessingParams{
+			expected: ipxpress.ProcessingParams{
 				URL:        "https://example.com/test.jpg",
 				Width:      1000,
 				Height:     600,
-				Format:     FormatWebP,
+				Format:     ipxpress.FormatWebP,
 				Quality:    85,
 				Background: "#ffffff",
 				Position:   "top",
@@ -129,7 +131,7 @@ func TestShortParameterAliases(t *testing.T) {
 				t.Fatalf("failed to create request: %v", err)
 			}
 
-			params := ParseProcessingParams(req)
+			params := ipxpress.ParseProcessingParams(req)
 
 			if params.URL != tt.expected.URL {
 				t.Errorf("URL: got %q, want %q", params.URL, tt.expected.URL)
@@ -175,7 +177,7 @@ func TestResizeParameter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req, _ := http.NewRequest("GET", "http://localhost?url=test.jpg&s="+tt.resizeValue, nil)
-			params := ParseProcessingParams(req)
+			params := ipxpress.ParseProcessingParams(req)
 
 			if params.Width != tt.expectedWidth {
 				t.Errorf("Width: got %d, want %d", params.Width, tt.expectedWidth)

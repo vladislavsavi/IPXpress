@@ -1,0 +1,2 @@
+# Exclude test directory from language statistics
+test/** linguist-documentation

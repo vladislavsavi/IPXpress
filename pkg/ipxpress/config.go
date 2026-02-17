@@ -40,6 +40,9 @@ type Config struct {
 	// CacheTTL is the duration to keep cached responses
 	CacheTTL time.Duration
 
+	// CacheCapacity is the maximum number of entries in the response cache
+	CacheCapacity int
+
 	// ProcessingLimit is the maximum number of concurrent image processing operations
 	ProcessingLimit int
 
@@ -64,6 +67,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		CacheTTL:        30 * time.Second,
+		CacheCapacity:   10000,
 		ProcessingLimit: 256,
 		CleanupInterval: 30 * time.Second,
 		VipsConfig:      nil,    // Will use default vips settings

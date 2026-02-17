@@ -1,4 +1,4 @@
-package ipxpress
+package ipxpress_test
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"image/color"
 	"image/jpeg"
 	"testing"
+
+	"github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 )
 
 // TestJPEGToWebPCompression tests that WebP encoding produces smaller files than JPEG
@@ -34,12 +36,12 @@ func TestJPEGToWebPCompression(t *testing.T) {
 	t.Logf("Original JPEG size: %d bytes", jpegSize)
 
 	// Convert JPEG to WebP with same quality
-	proc := New().FromBytes(jpegBytes)
+	proc := ipxpress.New().FromBytes(jpegBytes)
 	if err := proc.Err(); err != nil {
 		t.Fatalf("failed to load JPEG: %v", err)
 	}
 
-	webpBytes, err := proc.ToBytes(FormatWebP, 85)
+	webpBytes, err := proc.ToBytes(ipxpress.FormatWebP, 85)
 	proc.Close()
 	if err != nil {
 		t.Fatalf("failed to encode WebP: %v", err)
@@ -56,8 +58,8 @@ func TestJPEGToWebPCompression(t *testing.T) {
 	}
 
 	// Test with high quality
-	proc2 := New().FromBytes(jpegBytes)
-	webpBytes100, err := proc2.ToBytes(FormatWebP, 100)
+	proc2 := ipxpress.New().FromBytes(jpegBytes)
+	webpBytes100, err := proc2.ToBytes(ipxpress.FormatWebP, 100)
 	proc2.Close()
 	if err != nil {
 		t.Fatalf("failed to encode WebP q=100: %v", err)
@@ -99,8 +101,8 @@ func TestFormatConversionOnly(t *testing.T) {
 	qualities := []int{70, 80, 85, 90, 95, 100}
 
 	for _, q := range qualities {
-		proc := New().FromBytes(jpegBytes)
-		webpBytes, err := proc.ToBytes(FormatWebP, q)
+		proc := ipxpress.New().FromBytes(jpegBytes)
+		webpBytes, err := proc.ToBytes(ipxpress.FormatWebP, q)
 		proc.Close()
 
 		if err != nil {

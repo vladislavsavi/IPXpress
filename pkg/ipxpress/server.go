@@ -19,7 +19,7 @@ type MiddlewareFunc func(http.Handler) http.Handler
 
 // Handler handles image processing requests.
 type Handler struct {
-	cache           Cache
+	cache           *InMemoryCache
 	fetcher         *Fetcher
 	config          *Config
 	processingLimit chan struct{}
@@ -43,7 +43,7 @@ func NewHandler(config *Config) *Handler {
 	}
 
 	return &Handler{
-		cache:           NewInMemoryCache(config.CacheTTL),
+		cache:           NewInMemoryCache(config.CacheTTL, config.CacheCapacity),
 		fetcher:         NewFetcher(),
 		config:          config,
 		processingLimit: make(chan struct{}, config.ProcessingLimit),
@@ -386,11 +386,6 @@ func (h *Handler) writeResponse(w http.ResponseWriter, r *http.Request, entry *C
 
 	w.WriteHeader(entry.StatusCode)
 	w.Write(entry.Data)
-}
-
-// CleanupCache removes expired entries from the handler's cache.
-func (h *Handler) CleanupCache() {
-	h.cache.Cleanup()
 }
 
 // hexToRGB converts hex color string to RGB values
