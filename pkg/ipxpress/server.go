@@ -149,6 +149,7 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 
 	// If no transformation parameters are specified, return original image
 	if !params.NeedsProcessing(origFormat) {
+		proc.Close() // Free resources before returning
 		return &CacheEntry{
 			ContentType: origFormat.ContentType(),
 			Data:        imageData,
