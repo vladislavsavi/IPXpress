@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/golang-lru/v2/expirable"
+	"github.com/maypok86/otter"
 )
 
 // CacheEntry represents a cached response.
@@ -17,39 +17,61 @@ type CacheEntry struct {
 	Timestamp   time.Time
 }
 
-// InMemoryCache is an in-memory cache implementation backed by golang-lru with expirable TTL support.
+// InMemoryCache is an in-memory cache implementation backed by otter (W-TinyLFU algorithm).
+// It supports cost-based eviction (by data size) and high-concurrency access.
 type InMemoryCache struct {
-	lru *expirable.LRU[string, *CacheEntry]
+	cache otter.Cache[string, *CacheEntry]
 }
 
-// NewInMemoryCache creates a new in-memory cache with the given TTL and capacity using golang-lru expirable.
-// Entries are automatically evicted when they expire or when the cache reaches capacity (LRU eviction).
+// NewInMemoryCache creates a new in-memory cache with the given TTL and capacity.
+// It uses W-TinyLFU for high hit rates and low memory overhead.
+// Capacity is treated as the number of items by default, but can be scaled for bytes.
 func NewInMemoryCache(ttl time.Duration, capacity int) *InMemoryCache {
 	if capacity <= 0 {
-		capacity = 10000 // Fallback to default if invalid capacity is provided
+		capacity = 10000
 	}
-	cache := expirable.NewLRU[string, *CacheEntry](capacity, nil, ttl)
+
+	// Build the cache with W-TinyLFU and cost-based eviction
+	cache, err := otter.MustBuilder[string, *CacheEntry](capacity).
+		CollectStats().
+		Cost(func(key string, entry *CacheEntry) uint32 {
+			// Cost is based on the data size plus some overhead for metadata
+			// This allows the cache to evict based on actual memory usage
+			cost := uint32(len(entry.Data)) + 128 // 128 bytes overhead estimate
+			if cost == 0 {
+				return 1 // Minimum cost must be 1
+			}
+			return cost
+		}).
+		WithTTL(ttl).
+		Build()
+
+	if err != nil {
+		// Should not happen with MustBuilder unless something is fundamentally wrong
+		panic(fmt.Sprintf("failed to build otter cache: %v", err))
+	}
+
 	return &InMemoryCache{
-		lru: cache,
+		cache: cache,
 	}
 }
 
 // Get retrieves a cache entry by key. Returns the entry and true if found and not expired.
-// The expirable cache automatically removes expired entries.
 func (c *InMemoryCache) Get(key string) (*CacheEntry, bool) {
-	entry, exists := c.lru.Get(key)
-	if !exists {
-		return nil, false
-	}
-	return entry, true
+	return c.cache.Get(key)
 }
 
 // Set stores a cache entry with the given key.
 // The entry will be automatically removed after the TTL expires.
 func (c *InMemoryCache) Set(key string, entry *CacheEntry) {
-	// Stamp the entry time for reference (not used for expiration)
+	// Stamp the entry time for reference
 	entry.Timestamp = time.Now()
-	c.lru.Add(key, entry)
+	c.cache.Set(key, entry)
+}
+
+// Close closes the cache and releases resources.
+func (c *InMemoryCache) Close() {
+	c.cache.Close()
 }
 
 // GenerateCacheKey generates a cache key from request parameters.

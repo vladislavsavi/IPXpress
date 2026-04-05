@@ -45,7 +45,7 @@ func main() {
 config := &ipxpress.Config{
     ProcessingLimit: 10,              // Max 10 concurrent image processing operations
     CacheTTL:        5 * time.Minute, // Cache images for 5 minutes
-    CleanupInterval: 1 * time.Minute, // Clean cache every minute
+    CacheMaxCost:    128 * 1024 * 1024, // 128MB cache capacity (bytes)
 }
 
 handler := ipxpress.NewHandler(config)
@@ -358,7 +358,7 @@ func main() {
     config := &ipxpress.Config{
         ProcessingLimit: 10,
         CacheTTL:        30 * time.Minute,
-        CleanupInterval: 5 * time.Minute,
+        CacheMaxCost:    1024 * 1024 * 1024, // 1GB cache
         VipsConfig: &ipxpress.VipsConfig{
             ConcurrencyLevel: 0,
             MaxCacheMem:      4096,

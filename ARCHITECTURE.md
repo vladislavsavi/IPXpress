@@ -82,8 +82,9 @@ contentType := format.ContentType() // "image/jpeg"
 Response cache with TTL (Time To Live).
 
 **Architecture:**
-- `Cache` interface for multiple implementations
-- `InMemoryCache` with sync.RWMutex
+- `InMemoryCache` backed by **Otter** (W-TinyLFU algorithm)
+- High-concurrency support with zero-lock reads
+- **Cost-based eviction**: limits memory usage by data size (bytes) rather than item count
 - Automatic cleanup of expired entries
 - Caches both successful responses and errors
 
@@ -175,8 +176,8 @@ Service configuration.
 ```go
 type Config struct {
     CacheTTL        time.Duration // Cache TTL (30 seconds)
+    CacheMaxCost    int           // Max total cost in bytes (512MB default)
     ProcessingLimit int           // Max concurrent processing (256)
-    CleanupInterval time.Duration // Cache cleanup interval (30 seconds)
 }
 ```
 

@@ -43,7 +43,7 @@ func NewHandler(config *Config) *Handler {
 	}
 
 	return &Handler{
-		cache:           NewInMemoryCache(config.CacheTTL, config.CacheCapacity),
+		cache:           NewInMemoryCache(config.CacheTTL, config.CacheMaxCost),
 		fetcher:         NewFetcher(),
 		config:          config,
 		processingLimit: make(chan struct{}, config.ProcessingLimit),

@@ -40,13 +40,15 @@ type Config struct {
 	// CacheTTL is the duration to keep cached responses
 	CacheTTL time.Duration
 
-	// CacheCapacity is the maximum number of entries in the response cache
-	CacheCapacity int
+	// CacheMaxCost is the maximum total cost of the cache (usually in bytes).
+	// Otter uses this to perform cost-based eviction.
+	CacheMaxCost int
 
 	// ProcessingLimit is the maximum number of concurrent image processing operations
 	ProcessingLimit int
 
-	// CleanupInterval is the interval for cache cleanup
+	// CleanupInterval is the interval for cache cleanup (maintained for compatibility,
+	// though Otter manages cleanup internally).
 	CleanupInterval time.Duration
 
 	// VipsConfig holds libvips-specific configuration
@@ -67,7 +69,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		CacheTTL:        30 * time.Second,
-		CacheCapacity:   10000,
+		CacheMaxCost:    512 * 1024 * 1024, // 512 MB
 		ProcessingLimit: 256,
 		CleanupInterval: 30 * time.Second,
 		VipsConfig:      nil,    // Will use default vips settings

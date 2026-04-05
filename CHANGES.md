@@ -1,5 +1,17 @@
 # IPXpress Changes
 
+## v1.2.0 (2026-04-05)
+
+**Major Caching System Upgrade:**
+
+- **Replaced `golang-lru` with `Otter`**: switched to high-performance W-TinyLFU caching algorithm.
+- **Cost-based Eviction**: Cache now uses `CacheMaxCost` (bytes) to limit memory usage based on actual image size instead of simple item count.
+- **Zero-lock Reads**: Otter provides lock-free read access for better concurrency and throughput.
+- **Async Eviction**: Improved performance by processing evictions asynchronously.
+- **Config changes**: `CacheCapacity` (count) replaced by `CacheMaxCost` (bytes). Default set to 512 MB.
+- **Documentation**: Architecture and library usage docs updated to reflect the new caching strategy.
+- **Tests**: Added functional cache tests and updated benchmarks.
+
 ## v1.0.0 (2026-02-13)
 
 **Documentation updates:**

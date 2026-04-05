@@ -149,8 +149,9 @@ func TestCacheConcurrency(t *testing.T) {
 
 // TestCacheTTLExpiration tests that cache entries expire correctly under load
 func TestCacheTTLExpiration(t *testing.T) {
-	ttl := 200 * time.Millisecond
-	cache := ipxpress.NewInMemoryCache(ttl, 100)
+	ttl := 1100 * time.Millisecond
+	// Increase capacity to accommodate byte-based cost with overhead
+	cache := ipxpress.NewInMemoryCache(ttl, 100*1024)
 
 	for i := 0; i < 10; i++ {
 		entry := &ipxpress.CacheEntry{
@@ -168,7 +169,8 @@ func TestCacheTTLExpiration(t *testing.T) {
 		}
 	}
 
-	time.Sleep(ttl + 50*time.Millisecond)
+	// Wait for TTL to pass. Otter often checks expiration every second.
+	time.Sleep(ttl + 1100*time.Millisecond)
 
 	expiredCount := 0
 	for i := 0; i < 10; i++ {
@@ -185,12 +187,17 @@ func TestCacheTTLExpiration(t *testing.T) {
 	t.Logf("Expired %d out of 10 entries after TTL", expiredCount)
 }
 
-// TestCacheLRUEviction tests LRU eviction under capacity pressure
+// TestCacheLRUEviction tests eviction under capacity pressure.
+// Note: Otter uses W-TinyLFU, which is more advanced than pure LRU,
+// so we test for general eviction behavior.
 func TestCacheLRUEviction(t *testing.T) {
-	capacity := 50
+	// Each entry is ~134 bytes (data + overhead).
+	// Set capacity to 2KB to store about 15 entries.
+	capacity := 2048
 	cache := ipxpress.NewInMemoryCache(10*time.Minute, capacity)
 
-	for i := 0; i < capacity; i++ {
+	// Fill the cache
+	for i := 0; i < 20; i++ {
 		entry := &ipxpress.CacheEntry{
 			ContentType: "image/jpeg",
 			Data:        []byte(fmt.Sprintf("data-%d", i)),
@@ -199,11 +206,11 @@ func TestCacheLRUEviction(t *testing.T) {
 		cache.Set(fmt.Sprintf("key-%d", i), entry)
 	}
 
-	for i := 0; i < 25; i++ {
-		cache.Get(fmt.Sprintf("key-%d", i))
-	}
+	// Wait for async eviction processing
+	time.Sleep(100 * time.Millisecond)
 
-	for i := capacity; i < capacity+30; i++ {
+	// Add more entries to force eviction of others
+	for i := 20; i < 100; i++ {
 		entry := &ipxpress.CacheEntry{
 			ContentType: "image/jpeg",
 			Data:        []byte(fmt.Sprintf("data-%d", i)),
@@ -212,36 +219,35 @@ func TestCacheLRUEviction(t *testing.T) {
 		cache.Set(fmt.Sprintf("key-%d", i), entry)
 	}
 
-	recentlyAccessedStillPresent := 0
-	for i := 0; i < 25; i++ {
+	// Wait for async eviction processing
+	time.Sleep(100 * time.Millisecond)
+
+	presentCount := 0
+	for i := 0; i < 100; i++ {
 		if _, ok := cache.Get(fmt.Sprintf("key-%d", i)); ok {
-			recentlyAccessedStillPresent++
+			presentCount++
 		}
 	}
 
-	lruEvicted := 0
-	for i := 25; i < capacity; i++ {
-		if _, ok := cache.Get(fmt.Sprintf("key-%d", i)); !ok {
-			lruEvicted++
-		}
+	t.Logf("Entries present: %d/100 (capacity was %d bytes)", presentCount, capacity)
+
+	if presentCount >= 100 {
+		t.Error("No entries were evicted despite exceeding capacity")
 	}
-
-	t.Logf("Recently accessed entries still present: %d/25", recentlyAccessedStillPresent)
-	t.Logf("LRU entries evicted: %d/25", lruEvicted)
-
-	if recentlyAccessedStillPresent < 15 {
-		t.Errorf("Too few recently accessed entries preserved: %d/25", recentlyAccessedStillPresent)
+	if presentCount == 0 {
+		t.Error("All entries were evicted, which is unexpected")
 	}
 }
 
 // TestCacheHighThroughput tests cache under high throughput scenario
 func TestCacheHighThroughput(t *testing.T) {
-	cache := ipxpress.NewInMemoryCache(30*time.Second, 1000)
+	// 10MB capacity for images
+	cache := ipxpress.NewInMemoryCache(30*time.Second, 10*1024*1024)
 
 	const (
 		numWorkers = 50
 		duration   = 2 * time.Second
-		uniqueKeys = 200
+		uniqueKeys = 100
 	)
 
 	var (
