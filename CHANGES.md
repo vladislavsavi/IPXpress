@@ -1,5 +1,15 @@
 # IPXpress Changes
 
+## v1.2.1 (2026-04-06)
+
+**Memory Management and Stability Improvements:**
+
+- **Optimized Request Pipeline**: Moved semaphore acquisition before image fetching in `ServeHTTP`. This prevents memory exhaustion by limiting the number of concurrent "in-flight" requests (including those waiting for network I/O), preventing large `imageData` buffers from accumulating in memory.
+- **Accurate Cache Costing**: Updated Otter cache `Cost` function to include `ContentType`, `ErrorMsg` overhead, and struct metadata. This ensures the `CacheMaxCost` limit accurately reflects real-world memory usage.
+- **Enhanced Cleanup**: Added `Handler.Close()` to properly shut down the internal cache and release resources.
+- **Improved Resource Lifecycle**: Explicitly clearing `originalData` in `Processor.Close()` to assist the Go garbage collector in freeing large buffers immediately after processing.
+- **Stability**: Verified memory stability with new stress tests (`test/ipxpress/leak_test.go`) and ensured `libvips` resources are consistently freed via both manual `Close()` and finalizers.
+
 ## v1.2.0 (2026-04-05)
 
 **Major Caching System Upgrade:**

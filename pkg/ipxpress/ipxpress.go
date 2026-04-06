@@ -597,6 +597,8 @@ func (p *Processor) Close() {
 		p.img.Close()
 		p.img = nil
 	}
+	// Explicitly clear original data to help GC
+	p.originalData = nil
 }
 
 // Err returns the processor's error (if any).

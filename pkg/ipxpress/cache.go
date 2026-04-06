@@ -35,9 +35,9 @@ func NewInMemoryCache(ttl time.Duration, capacity int) *InMemoryCache {
 	cache, err := otter.MustBuilder[string, *CacheEntry](capacity).
 		CollectStats().
 		Cost(func(key string, entry *CacheEntry) uint32 {
-			// Cost is based on the data size plus some overhead for metadata
+			// Cost is based on the data size plus metadata strings and overhead
 			// This allows the cache to evict based on actual memory usage
-			cost := uint32(len(entry.Data)) + 128 // 128 bytes overhead estimate
+			cost := uint32(len(entry.Data) + len(entry.ContentType) + len(entry.ErrorMsg)) + 256 // 256 bytes struct/node overhead estimate
 			if cost == 0 {
 				return 1 // Minimum cost must be 1
 			}

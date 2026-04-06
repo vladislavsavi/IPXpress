@@ -158,13 +158,15 @@ type Handler struct {
 **Request flow:**
 1. Parse request parameters
 2. Cache lookup (fast path)
-3. Fetch image (parallel, I/O bound)
-4. Process image (concurrency limited, CPU bound)
-5. Cache result
-6. Write response
+3. **Acquire semaphore** (limits total concurrent active requests)
+4. Fetch image (sequential within semaphore limit)
+5. Process image (sequential within semaphore limit)
+6. Cache result
+7. Release semaphore
+8. Write response
 
 **Optimizations:**
-- Two-stage processing: I/O first (parallel), CPU with a semaphore
+- **In-flight request limiting**: Semaphore is acquired before fetching to prevent memory exhaustion from holding too many `imageData` buffers.
 - Cache errors to avoid repeated fetches
 - Connection pooling for outgoing HTTP requests
 - Optimized HTTP headers (Cache-Control)
@@ -192,9 +194,9 @@ HTTP Request
     |
 [Cache Check] -> Hit? -> [Write Response]
     | Miss
-[Fetch Image] -> imageData (parallel, no semaphore)
+[Acquire Semaphore] -> limit total concurrent active requests
     |
-[Acquire Semaphore] -> limit concurrent processing
+[Fetch Image] -> imageData
     |
 [Process Image] -> Processor chain
     |

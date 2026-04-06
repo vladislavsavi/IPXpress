@@ -88,8 +88,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cache miss - fetch and process
-	// STAGE 1: Fetch image (network I/O - parallel for all requests)
+	// Cache miss - acquire semaphore first to limit total concurrent active requests (including fetching)
+	// This prevents memory exhaustion from too many pending fetches
+	h.processingLimit <- struct{}{}
+	defer func() { <-h.processingLimit }()
+
+	// STAGE 1: Fetch image
 	imageData, err := h.fetcher.Fetch(params.URL)
 	if err != nil {
 		entry := h.createErrorEntry(err)
@@ -98,11 +102,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// STAGE 2: Acquire semaphore for libvips processing
-	h.processingLimit <- struct{}{}
-	defer func() { <-h.processingLimit }()
-
-	// Process with libvips (serialize via semaphore)
+	// STAGE 2: Process with libvips (now protected by the same semaphore)
 	entry := h.processImage(imageData, params)
 
 	// Cache the result
@@ -110,6 +110,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Write response
 	h.writeResponse(w, r, entry)
+}
+
+// Close closes the handler and releases resources (like cache).
+func (h *Handler) Close() {
+	if h.cache != nil {
+		h.cache.Close()
+	}
 }
 
 // Server returns an http.Handler that processes images from URLs.
