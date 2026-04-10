@@ -1,5 +1,16 @@
 # IPXpress Changes
 
+## v1.3.0 (2026-04-10)
+
+**Performance and Cache Reliability Improvements:**
+
+- **Singleflight Implementation**: Introduced `golang.org/x/sync/singleflight` to prevent the "Thundering Herd" problem. Concurrent requests for the same image and parameters now share a single fetch and processing operation, drastically reducing backend load and resource consumption.
+- **Enhanced Cache Key Generation**: The cache key now includes all transformation parameters (fit, position, blur, sharpen, rotate, etc.) to ensure unique caching for every possible processing combination.
+- **Precomputed ETags**: ETags are now calculated once during image processing and stored in the cache. This eliminates redundant MD5 calculations on every request and speeds up `304 Not Modified` responses.
+- **Extended Default TTL**: Increased default `CacheTTL` from 30 seconds to 10 minutes, providing better hit rates for moderately frequent requests.
+- **Upgraded to Go 1.25**: The project now requires Go 1.25.0+.
+- **Simplified libvips Configuration**: Removed `ConcurrencyLevel` from configuration as libvips automatically manages its internal thread pool effectively for the given hardware.
+
 ## v1.2.1 (2026-04-06)
 
 **Memory Management and Stability Improvements:**
