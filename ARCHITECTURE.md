@@ -177,7 +177,7 @@ Service configuration.
 
 ```go
 type Config struct {
-    CacheTTL        time.Duration // Cache TTL (30 seconds)
+    CacheTTL        time.Duration // Cache TTL (10 minutes)
     CacheMaxCost    int           // Max total cost in bytes (512MB default)
     ProcessingLimit int           // Max concurrent processing (256)
 }
@@ -194,6 +194,8 @@ HTTP Request
     |
 [Cache Check] -> Hit? -> [Write Response]
     | Miss
+[Singleflight Group] -> join concurrent requests for same key
+    |
 [Acquire Semaphore] -> limit total concurrent active requests
     |
 [Fetch Image] -> imageData
@@ -243,10 +245,10 @@ Output Bytes
 
 ### Caching
 
-- **Cache key:** MD5(url|width|height|quality|format)
-- **TTL:** 30 seconds (configurable)
-- **Cleanup:** periodic (every 30 seconds)
-- **Storage:** in-memory (fast access)
+- **Cache key:** MD5(url|width|height|quality|format|fit|blur|...)
+- **TTL:** 10 minutes (default)
+- **Grouping:** singleflight (concurrent requests share same processing)
+- **ETag:** precomputed and cached
 
 ### Memory management
 
@@ -254,7 +256,6 @@ Output Bytes
 - libvips settings:
   - MaxCacheMem: 0 MB (application-level caching)
   - MaxCacheSize: 0 images
-  - ConcurrencyLevel: 0 (use all CPU cores)
 
 ## API
 

@@ -28,10 +28,9 @@ func initVipsWithSettings(cfg *VipsConfig) {
 		}
 
 		vips.Startup(&vips.Config{
-			ConcurrencyLevel: cfg.ConcurrencyLevel,
-			MaxCacheMem:      cfg.MaxCacheMem,
-			MaxCacheSize:     cfg.MaxCacheSize,
-			MaxCacheFiles:    cfg.MaxCacheFiles,
+			MaxCacheMem:   cfg.MaxCacheMem,
+			MaxCacheSize:  cfg.MaxCacheSize,
+			MaxCacheFiles: cfg.MaxCacheFiles,
 		})
 		vips.LoggingSettings(nil, cfg.LogLevel)
 	})

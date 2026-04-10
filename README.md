@@ -168,7 +168,7 @@ curl "http://localhost:8080/ipx/?url=https://example.com/small.jpg&w=2000&enlarg
 
 ### Caching and headers
 
-- Internal cache: in-memory, TTL is controlled by `Config.CacheTTL` (default 30s).
+- Internal cache: in-memory, TTL is controlled by `Config.CacheTTL` (default 10m).
 - HTTP caching:
 	- `Cache-Control`: configured via `Config.ClientMaxAge` and `Config.SMaxAge`.
 	- `ETag`: enabled by default (`Config.EnableETag=true`). `If-None-Match` matches return `304`.

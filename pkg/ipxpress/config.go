@@ -8,9 +8,6 @@ import (
 
 // VipsConfig holds vips-specific configuration.
 type VipsConfig struct {
-	// ConcurrencyLevel controls the number of threads libvips uses (0 = use all cores)
-	ConcurrencyLevel int
-
 	// MaxCacheMem is the maximum memory to use for caching (in MB)
 	MaxCacheMem int
 
@@ -27,7 +24,6 @@ type VipsConfig struct {
 // DefaultVipsConfig returns default vips configuration.
 func DefaultVipsConfig() *VipsConfig {
 	return &VipsConfig{
-		ConcurrencyLevel: 0, // Use all available cores
 		MaxCacheMem:      0, // Disable libvips caching (we manage cache at application level)
 		MaxCacheSize:     0, // Disable libvips caching
 		MaxCacheFiles:    0,
@@ -68,7 +64,7 @@ type Config struct {
 // DefaultConfig returns the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
-		CacheTTL:        30 * time.Second,
+		CacheTTL:        10 * time.Minute,
 		CacheMaxCost:    512 * 1024 * 1024, // 512 MB
 		ProcessingLimit: 256,
 		CleanupInterval: 30 * time.Second,

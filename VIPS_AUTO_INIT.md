@@ -17,7 +17,6 @@ The `initVips()` function was added using `sync.Once`, and is called automatical
 Automatic initialization uses the following settings:
 ```go
 vips.Config{
-    ConcurrencyLevel: 0,    // Use all available CPU cores
     MaxCacheMem:      2048, // 2GB cache memory
     MaxCacheSize:     5000, // Up to 5000 files in cache
 }
@@ -29,7 +28,6 @@ For production environments with high load, use `InitVipsWithConfig()`:
 
 ```go
 ipxpress.InitVipsWithConfig(&vips.Config{
-    ConcurrencyLevel: 0,
     MaxCacheMem:      4096,
     MaxCacheSize:     10000,
     MaxCacheFiles:    0,
@@ -72,7 +70,6 @@ import (
 func main() {
     // Optional: configure vips before use
     ipxpress.InitVipsWithConfig(&vips.Config{
-        ConcurrencyLevel: 0,
         MaxCacheMem:      4096,
         MaxCacheSize:     10000,
     }, vips.LogLevelWarning)

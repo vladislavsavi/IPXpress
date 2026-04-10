@@ -1,10 +1,11 @@
 module github.com/vladislavsavi/ipxpress
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/davidbyttow/govips/v2 v2.15.0
 	github.com/maypok86/otter v1.2.4
+	golang.org/x/sync v0.20.0
 )
 
 require (

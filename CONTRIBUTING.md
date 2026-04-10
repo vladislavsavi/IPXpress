@@ -498,7 +498,6 @@ func main() {
    - Use sync.Pool for temporary objects
 
 3. **libvips optimization:**
-   - Tune ConcurrencyLevel to your hardware
    - Experiment with MaxCacheMem
    - Use vector operations (automatic)
 

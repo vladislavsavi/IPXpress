@@ -192,8 +192,8 @@ func TestCacheTTLExpiration(t *testing.T) {
 // so we test for general eviction behavior.
 func TestCacheLRUEviction(t *testing.T) {
 	// Each entry is ~134 bytes (data + overhead).
-	// Set capacity to 2KB to store about 15 entries.
-	capacity := 2048
+	// Set capacity to 10KB to trigger eviction under test load.
+	capacity := 10240
 	cache := ipxpress.NewInMemoryCache(10*time.Minute, capacity)
 
 	// Fill the cache
@@ -333,13 +333,15 @@ func TestCacheGenerateCacheKey(t *testing.T) {
 	collisions := 0
 
 	for i := 0; i < numKeys; i++ {
-		url := fmt.Sprintf("https://example.com/image%d.jpg", i)
-		width := (i % 10) * 100
-		height := (i % 8) * 100
-		quality := 70 + ((i % 4) * 10)
-		format := ipxpress.Format([]string{"jpeg", "png", "webp"}[i%3])
+		params := &ipxpress.ProcessingParams{
+			URL:     fmt.Sprintf("https://example.com/image%d.jpg", i),
+			Width:   (i % 10) * 100,
+			Height:  (i % 8) * 100,
+			Quality: 70 + ((i % 4) * 10),
+			Format:  ipxpress.Format([]string{"jpeg", "png", "webp"}[i%3]),
+		}
 
-		key := ipxpress.GenerateCacheKey(url, width, height, quality, format)
+		key := ipxpress.GenerateCacheKey(params)
 
 		if keys[key] {
 			collisions++

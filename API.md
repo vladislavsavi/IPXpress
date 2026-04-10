@@ -196,7 +196,7 @@ curl "http://localhost:8080/ipx/?url=https://example.com/photo.jpg" -o original.
 
 ### Internal cache
 
-- In-memory cache at the server level. TTL is set by `Config.CacheTTL` (default `30s`).
+- In-memory cache at the server level. TTL is set by `Config.CacheTTL` (default `10m`).
 
 ### HTTP caching
 
@@ -268,12 +268,13 @@ Image scales to fit within the specified rectangle while preserving aspect ratio
 
 ### Caching
 
-The service caches processed images for **30 seconds**. Repeat requests with the same parameters are served instantly.
+The service caches processed images for **10 minutes**. Repeat requests with the same parameters are served instantly.
 
 **Cache key:**
 ```
-MD5(url + width + height + quality + format)
+MD5(url + width + height + quality + format + fit + blur + ...)
 ```
+The cache key includes all transformation parameters to ensure unique caching for different processing options.
 
 ### Cache-Control headers
 

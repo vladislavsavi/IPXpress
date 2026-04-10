@@ -60,7 +60,6 @@ config := &ipxpress.Config{
     ProcessingLimit: 10,
     CacheTTL:        5 * time.Minute,
     VipsConfig: &ipxpress.VipsConfig{
-        ConcurrencyLevel: 0,    // Use all CPU cores (0 = auto)
         MaxCacheMem:      4096, // 4GB cache
         MaxCacheSize:     10000,
         LogLevel:         vips.LogLevelError, // Only show errors
@@ -360,7 +359,6 @@ func main() {
         CacheTTL:        30 * time.Minute,
         CacheMaxCost:    1024 * 1024 * 1024, // 1GB cache
         VipsConfig: &ipxpress.VipsConfig{
-            ConcurrencyLevel: 0,
             MaxCacheMem:      4096,
             MaxCacheSize:     10000,
             LogLevel:         vips.LogLevelWarning,

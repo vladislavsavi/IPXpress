@@ -14,6 +14,7 @@ type CacheEntry struct {
 	Data        []byte
 	StatusCode  int
 	ErrorMsg    string
+	ETag        string
 	Timestamp   time.Time
 }
 
@@ -37,7 +38,7 @@ func NewInMemoryCache(ttl time.Duration, capacity int) *InMemoryCache {
 		Cost(func(key string, entry *CacheEntry) uint32 {
 			// Cost is based on the data size plus metadata strings and overhead
 			// This allows the cache to evict based on actual memory usage
-			cost := uint32(len(entry.Data) + len(entry.ContentType) + len(entry.ErrorMsg)) + 256 // 256 bytes struct/node overhead estimate
+			cost := uint32(len(entry.Data) + len(entry.ContentType) + len(entry.ErrorMsg) + len(entry.ETag)) + 256 // 256 bytes struct/node overhead estimate
 			if cost == 0 {
 				return 1 // Minimum cost must be 1
 			}
@@ -74,8 +75,17 @@ func (c *InMemoryCache) Close() {
 	c.cache.Close()
 }
 
-// GenerateCacheKey generates a cache key from request parameters.
-func GenerateCacheKey(imageURL string, width, height, quality int, format Format) string {
-	h := md5.Sum([]byte(fmt.Sprintf("%s|%d|%d|%d|%s", imageURL, width, height, quality, format)))
+// GenerateCacheKey generates a cache key from all request parameters to avoid collisions.
+func GenerateCacheKey(p *ProcessingParams) string {
+	// Include all parameters that affect the output image to ensure correct caching.
+	// We use | as separator to avoid ambiguity between parameter values.
+	key := fmt.Sprintf("%s|%d|%d|%d|%s|%s|%s|%s|%t|%f|%s|%d|%t|%t|%t|%s|%d|%s|%s|%t|%t|%d|%s|%f|%d|%s|%t",
+		p.URL, p.Width, p.Height, p.Quality, p.Format,
+		p.Fit, p.Position, p.Kernel, p.Enlarge,
+		p.Blur, p.Sharpen, p.Rotate, p.Flip, p.Flop, p.Grayscale,
+		p.Extract, p.Trim, p.Extend,
+		p.Background, p.Negate, p.Normalize, p.Threshold, p.Tint, p.Gamma, p.Median, p.Modulate, p.Flatten)
+
+	h := md5.Sum([]byte(key))
 	return fmt.Sprintf("%x", h)
 }

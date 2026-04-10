@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/davidbyttow/govips/v2/vips"
+	"golang.org/x/sync/singleflight"
 )
 
 // ProcessorFunc is a function that processes an image.
@@ -25,6 +26,7 @@ type Handler struct {
 	processingLimit chan struct{}
 	processors      []ProcessorFunc
 	middlewares     []MiddlewareFunc
+	sf              *singleflight.Group
 }
 
 // NewHandler creates a new Handler with the given configuration.
@@ -49,6 +51,7 @@ func NewHandler(config *Config) *Handler {
 		processingLimit: make(chan struct{}, config.ProcessingLimit),
 		processors:      []ProcessorFunc{},
 		middlewares:     []MiddlewareFunc{},
+		sf:              &singleflight.Group{},
 	}
 }
 
@@ -79,8 +82,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Parse request parameters
 	params := ParseProcessingParams(r)
 
-	// Generate cache key
-	cacheKey := GenerateCacheKey(params.URL, params.Width, params.Height, params.Quality, params.Format)
+	// Generate cache key using all parameters to avoid collisions
+	cacheKey := GenerateCacheKey(params)
 
 	// Check cache first
 	if entry, found := h.cache.Get(cacheKey); found {
@@ -88,27 +91,45 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cache miss - acquire semaphore first to limit total concurrent active requests (including fetching)
-	// This prevents memory exhaustion from too many pending fetches
-	h.processingLimit <- struct{}{}
-	defer func() { <-h.processingLimit }()
+	// Use singleflight to group concurrent requests for the same image/parameters.
+	// This prevents "Thundering Herd" problem where multiple concurrent requests
+	// for the same missing cache entry all fetch and process the image independently.
+	entryInterface, err, _ := h.sf.Do(cacheKey, func() (interface{}, error) {
+		// Cache miss - acquire semaphore first to limit total concurrent active requests (including fetching)
+		// This prevents memory exhaustion from too many pending fetches
+		h.processingLimit <- struct{}{}
+		defer func() { <-h.processingLimit }()
 
-	// STAGE 1: Fetch image
-	imageData, err := h.fetcher.Fetch(params.URL)
-	if err != nil {
-		entry := h.createErrorEntry(err)
+		// Re-check cache inside singleflight just in case another request filled it
+		if entry, found := h.cache.Get(cacheKey); found {
+			return entry, nil
+		}
+
+		// STAGE 1: Fetch image
+		imageData, err := h.fetcher.Fetch(params.URL)
+		if err != nil {
+			entry := h.createErrorEntry(err)
+			// We don't cache temporary errors in singleflight result to allow retry,
+			// but we still cache them in the main cache if they are persistent.
+			h.cache.Set(cacheKey, entry)
+			return entry, nil
+		}
+
+		// STAGE 2: Process with libvips (now protected by the same semaphore)
+		entry := h.processImage(imageData, params)
+
+		// Cache the result
 		h.cache.Set(cacheKey, entry)
-		h.writeResponse(w, r, entry)
+
+		return entry, nil
+	})
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// STAGE 2: Process with libvips (now protected by the same semaphore)
-	entry := h.processImage(imageData, params)
-
-	// Cache the result
-	h.cache.Set(cacheKey, entry)
-
-	// Write response
+	entry := entryInterface.(*CacheEntry)
 	h.writeResponse(w, r, entry)
 }
 
@@ -157,11 +178,17 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 	// If no transformation parameters are specified, return original image
 	if !params.NeedsProcessing(origFormat) {
 		proc.Close() // Free resources before returning
-		return &CacheEntry{
+		entry := &CacheEntry{
 			ContentType: origFormat.ContentType(),
 			Data:        imageData,
 			StatusCode:  http.StatusOK,
 		}
+		// Compute ETag for original data
+		if h.config != nil && h.config.EnableETag {
+			sum := md5.Sum(entry.Data)
+			entry.ETag = fmt.Sprintf("\"%x\"", sum)
+		}
+		return entry
 	}
 
 	// Determine output format
@@ -194,11 +221,19 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 		}
 	}
 
-	return &CacheEntry{
+	entry := &CacheEntry{
 		ContentType: outputFormat.ContentType(),
 		Data:        out,
 		StatusCode:  http.StatusOK,
 	}
+
+	// Compute ETag once and store it
+	if h.config != nil && h.config.EnableETag {
+		sum := md5.Sum(entry.Data)
+		entry.ETag = fmt.Sprintf("\"%x\"", sum)
+	}
+
+	return entry
 }
 
 // applyBuiltInTransformations applies the standard image transformations.
@@ -364,13 +399,21 @@ func (h *Handler) writeResponse(w http.ResponseWriter, r *http.Request, entry *C
 	// Prefer inline display universally to avoid forced downloads
 	w.Header().Set("Content-Disposition", "inline")
 
-	// Compute and set ETag if enabled
-	if h.config != nil && h.config.EnableETag {
+	// Use precomputed ETag if enabled
+	if h.config != nil && h.config.EnableETag && entry.ETag != "" {
+		w.Header().Set("ETag", entry.ETag)
+
+		// If client sent If-None-Match and matches, return 304
+		if inm := r.Header.Get("If-None-Match"); inm != "" && inm == entry.ETag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	} else if h.config != nil && h.config.EnableETag {
+		// Fallback for entries without precomputed ETag
 		sum := md5.Sum(entry.Data)
 		etag := fmt.Sprintf("\"%x\"", sum)
 		w.Header().Set("ETag", etag)
 
-		// If client sent If-None-Match and matches, return 304
 		if inm := r.Header.Get("If-None-Match"); inm != "" && inm == etag {
 			w.WriteHeader(http.StatusNotModified)
 			return
