@@ -106,7 +106,7 @@ func (f *Fetcher) Fetch(imageURL string) ([]byte, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, &FetchError{
-			StatusCode: http.StatusBadRequest,
+			StatusCode: resp.StatusCode,
 			Message:    fmt.Sprintf("image fetch failed with status %d", resp.StatusCode),
 		}
 	}

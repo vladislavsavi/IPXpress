@@ -450,8 +450,7 @@ func (p *Processor) Normalize() *Processor {
 		return p
 	}
 
-	// Vips doesn't have a direct normalize, but we can use linear adjustment
-	p.err = p.img.Linear([]float64{1}, []float64{0})
+	p.err = p.img.HistogramNormalise()
 	if p.err != nil {
 		p.err = fmt.Errorf("failed to normalize image: %w", p.err)
 	}

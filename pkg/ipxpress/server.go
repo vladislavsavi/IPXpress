@@ -109,9 +109,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		imageData, err := h.fetcher.Fetch(params.URL)
 		if err != nil {
 			entry := h.createErrorEntry(err)
-			// We don't cache temporary errors in singleflight result to allow retry,
-			// but we still cache them in the main cache if they are persistent.
-			h.cache.Set(cacheKey, entry)
+			// Only cache permanent errors (4xx). Transient errors (5xx, network)
+			// should not be cached so clients can retry successfully.
+			if entry.StatusCode < 500 {
+				h.cache.Set(cacheKey, entry)
+			}
 			return entry, nil
 		}
 

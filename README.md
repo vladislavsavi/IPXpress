@@ -265,7 +265,7 @@ func main() {
 ## Tests
 
 ```bash
-go test ./pkg/ipxpress
+go test ./test/ipxpress/... -v
 ```
 
 ## Dependencies
