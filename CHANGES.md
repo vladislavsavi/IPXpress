@@ -1,5 +1,16 @@
 # IPXpress Changes
 
+## v1.4.0 (2026-06-13)
+
+**Bug Fixes and Dependency Updates:**
+
+- **Fix `Normalize()`**: replaced no-op `Linear(1, 0)` with `HistogramNormalise()` — the `normalize=true` parameter now actually stretches the histogram to use the full intensity range.
+- **Fix transient error caching**: upstream 5xx responses are no longer cached, allowing clients to retry after transient failures. Previously all fetch errors were cached for the full TTL regardless of type.
+- **Fix upstream status code propagation**: `FetchError` now preserves the actual HTTP status code from the upstream server instead of always mapping it to 400.
+- **Updated dependencies**: govips/v2 v2.15.0 → v2.18.0 (memory leak fixes, animated AVIF detection, WebP shrink-on-load, leak detector API), x/sync v0.20.0 → v0.21.0, x/image/net/text minor bumps.
+- **Fix README test path**: corrected `go test` command to point at `./test/ipxpress/...`.
+- **Add CLAUDE.md**: codebase guide for AI-assisted development.
+
 ## v1.3.0 (2026-04-10)
 
 **Performance and Cache Reliability Improvements:**
