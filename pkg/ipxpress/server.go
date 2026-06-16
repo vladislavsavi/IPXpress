@@ -3,6 +3,7 @@ package ipxpress
 import (
 	"crypto/md5"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -87,6 +88,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Check cache first
 	if entry, found := h.cache.Get(cacheKey); found {
+		slog.Info("served from cache", "url", params.URL)
 		h.writeResponse(w, r, entry)
 		return
 	}
@@ -102,12 +104,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// Re-check cache inside singleflight just in case another request filled it
 		if entry, found := h.cache.Get(cacheKey); found {
+			slog.Info("served from cache", "url", params.URL)
 			return entry, nil
 		}
 
 		// STAGE 1: Fetch image
 		imageData, err := h.fetcher.Fetch(params.URL)
 		if err != nil {
+			slog.Error("fetch failed", "url", params.URL, "error", err)
 			entry := h.createErrorEntry(err)
 			// Only cache permanent errors (4xx). Transient errors (5xx, network)
 			// should not be cached so clients can retry successfully.
@@ -117,7 +121,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return entry, nil
 		}
 
-		// STAGE 2: Process with libvips (now protected by the same semaphore)
+		// STAGE 2: Process with libvips (now protected by the same semaphore).
+		// Logged right before the cgo call so the last line on stdout before a
+		// native crash (e.g. a libvips segfault) identifies the offending request.
+		slog.Info("processing image", "url", params.URL, "width", params.Width, "height", params.Height, "format", string(params.Format))
 		entry := h.processImage(imageData, params)
 
 		// Cache the result
@@ -207,6 +214,7 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 	// Check for errors
 	if err := proc.Err(); err != nil {
 		proc.Close()
+		slog.Error("image processing failed", "url", params.URL, "error", err)
 		return &CacheEntry{
 			StatusCode: http.StatusInternalServerError,
 			ErrorMsg:   fmt.Sprintf("processing: %v", err),
@@ -217,6 +225,7 @@ func (h *Handler) processImage(imageData []byte, params *ProcessingParams) *Cach
 	out, err := proc.ToBytes(outputFormat, params.Quality)
 	proc.Close() // Free memory immediately after processing
 	if err != nil {
+		slog.Error("image encode failed", "url", params.URL, "format", string(outputFormat), "error", err)
 		return &CacheEntry{
 			StatusCode: http.StatusInternalServerError,
 			ErrorMsg:   fmt.Sprintf("encode: %v", err),

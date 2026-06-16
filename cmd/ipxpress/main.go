@@ -4,13 +4,19 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/davidbyttow/govips/v2/vips"
 	"github.com/vladislavsavi/ipxpress/pkg/ipxpress"
 )
 
 func main() {
+	// Structured JSON logging so fields (url, error, ...) are queryable in Loki
+	// instead of buried in plain text.
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	addr := flag.String("addr", ":8080", "address to listen on")
 	flag.Parse()
 

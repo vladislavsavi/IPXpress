@@ -1,5 +1,11 @@
 # IPXpress Changes
 
+## v1.4.1 (2026-06-16)
+
+**Structured Logging:**
+
+- **Added `log/slog` logging in `ServeHTTP`/`processImage`**: logs the source image URL, whether the request was served from cache or processed, and any fetch/processing/encode errors. CLI (`cmd/ipxpress`) configures a JSON `slog` handler on stdout by default so fields are queryable (e.g. in Loki).
+
 ## v1.4.0 (2026-06-13)
 
 **Bug Fixes and Dependency Updates:**
